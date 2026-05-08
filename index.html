@@ -624,14 +624,15 @@ function rNav(){
   const nr=document.getElementById('nr');if(!nr)return;
   const nrMob=document.getElementById('nr-mob');
   const mobAuth=document.getElementById('mob-nav-auth');
+  const adminBtn=db.adm?`<button class="btn sm" style="background:#FAEEDA;border-color:#EAD0A8;color:#854F0B" onclick="go('admin')">${lang==='en'?'Admin Panel':lang==='zht'?'管理後台':'管理后台'}</button>`:'';
   if(db.cur){
     const c=cart.reduce((s,i)=>s+i.qty,0);
-    const cartHtml=`<button class="btn" onclick="tCart()"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>${t('cart')} <span class="bdg g" id="cart-count">${c}</span></button><div class="ava" onclick="go('acc')">${ini(db.cur.name)}</div>`;
+    const cartHtml=`${adminBtn}<button class="btn" onclick="tCart()"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>${t('cart')} <span class="bdg g" id="cart-count">${c}</span></button><div class="ava" onclick="go('acc')">${ini(db.cur.name)}</div>`;
     nr.innerHTML=cartHtml;
     if(nrMob)nrMob.innerHTML=cartHtml;
     if(mobAuth)mobAuth.innerHTML=`<button class="mob-dd-item" onclick="go('acc');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg><span>${t('myAccount')}</span></button><button class="mob-dd-item" onclick="db.cur=null;cart=[];rNav();go('shop');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3"/><path d="M10 11l3-3-3-3M13 8H6"/></svg><span>${t('logout')}</span></button>`;
   }else{
-    nr.innerHTML=`<button class="nav-link-btn" onclick="go('reg')">${t('register')}</button><button class="nav-link-btn" onclick="go('login')">${t('signIn')}</button>`;
+    nr.innerHTML=`${adminBtn}<button class="nav-link-btn" onclick="go('reg')">${t('register')}</button><button class="nav-link-btn" onclick="go('login')">${t('signIn')}</button>`;
     if(nrMob)nrMob.innerHTML='';
     if(mobAuth)mobAuth.innerHTML=`<button class="mob-dd-item" id="mob-nav-reg" onclick="go('reg');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M12 2v4M10 4h4"/></svg><span>${t('register')}</span></button><button class="mob-dd-item" id="mob-nav-login" onclick="go('login');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 3h3a1 1 0 011 1v8a1 1 0 01-1 1h-3"/><path d="M6 11l3-3-3-3M9 8H2"/></svg><span>${t('signIn')}</span></button>`;
   }
@@ -648,11 +649,71 @@ function rShop(r){
   const heroImg=db.heroImage||'';
   const heroClass=heroImg?'hero':'hero no-img';
   const heroBg=heroImg?`<img class="hero-bg" src="${heroImg}" alt=""><div class="hero-overlay"></div>`:'';
-  r.innerHTML=`<div class="${heroClass}">${heroBg}<div class="hero-content"><h1>${t('heroTitle')}</h1><p>${t('heroSub')}</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn p" onclick="document.getElementById('mp').scrollIntoView({behavior:'smooth'})">${t('shopNow')}</button>${!db.cur?`<button class="btn" onclick="go('reg')">${t('registerWithCode')}</button>`:''}</div></div></div>
+  const heroTitle=db.heroTextTitle||(lang==='zh'||lang==='zht'?'源自自然的美味':'Fresh from the source');
+  const heroSub=db.heroTextSub||(lang==='zh'||lang==='zht'?'精选食品与饮品，直达您的门口':'Artisan foods & drinks, delivered to your door');
+  const adminHeroBar=db.adm?`<div id="hero-admin-bar" style="position:absolute;top:10px;right:10px;z-index:10;display:flex;gap:6px">
+    <button class="btn sm" style="background:rgba(255,255,255,.92);backdrop-filter:blur(4px);border-color:rgba(0,0,0,.12);font-size:12px;display:flex;align-items:center;gap:4px" onclick="toggleHeroEdit()">
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 2l2 2-7 7H3v-2L10 2z"/></svg>
+      ${lang==='en'?'Edit Hero':lang==='zht'?'編輯橫幅':'编辑横幅'}
+    </button>
+  </div>
+  <div id="hero-edit-panel" style="display:none;position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);align-items:center;justify-content:center;padding:1.5rem">
+    <div style="background:#fff;border-radius:12px;padding:1.5rem;width:100%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div style="font-size:15px;font-weight:500">${lang==='en'?'Edit Hero Banner':lang==='zht'?'編輯首頁橫幅':'编辑首页横幅'}</div>
+        <button onclick="toggleHeroEdit()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#6b6a63;line-height:1;padding:0">×</button>
+      </div>
+      <div id="hero-edit-msg"></div>
+      <div style="margin-bottom:10px">
+        <label style="display:block;font-size:12px;color:#6b6a63;margin-bottom:4px;font-weight:500">${lang==='en'?'Title':lang==='zht'?'標題':'标题'}</label>
+        <input type="text" id="hero-title-input" value="${heroTitle}" style="width:100%;border:.5px solid #dddbd3;border-radius:8px;padding:7px 10px;font-size:14px;font-weight:500">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;color:#6b6a63;margin-bottom:4px;font-weight:500">${lang==='en'?'Subtitle':lang==='zht'?'副標題':'副标题'}</label>
+        <textarea id="hero-sub-input" rows="2" style="width:100%;border:.5px solid #dddbd3;border-radius:8px;padding:7px 10px;font-size:13px;resize:vertical">${heroSub}</textarea>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;color:#6b6a63;margin-bottom:4px;font-weight:500">${lang==='en'?'Background Image':lang==='zht'?'背景圖片':'背景图片'}</label>
+        <label style="display:block;border:.5px dashed #dddbd3;border-radius:8px;padding:10px;text-align:center;cursor:pointer;background:#f5f4f0">
+          ${heroImg?`<img src="${heroImg}" style="height:60px;object-fit:cover;border-radius:6px;display:block;margin:0 auto 6px"><div style="font-size:11px;color:#6b6a63">${lang==='en'?'Click to replace image':lang==='zht'?'點擊更換圖片':'点击更换图片'}</div>`:`<div style="font-size:12px;color:#6b6a63">${lang==='en'?'Click to upload image (JPG/PNG/WebP)':lang==='zht'?'點擊上傳圖片':'点击上传图片'}</div>`}
+          <input type="file" accept="image/*" style="display:none" onchange="handleHeroImgInline(event)">
+        </label>
+        ${heroImg?`<button class="btn sm d" style="margin-top:6px;width:100%;justify-content:center" onclick="removeHeroImgInline()">${lang==='en'?'Remove image':lang==='zht'?'移除圖片':'移除图片'}</button>`:''}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn p" style="flex:1;justify-content:center;padding:9px" onclick="saveHeroText()">${lang==='en'?'Save Changes':lang==='zht'?'儲存變更':'保存更改'}</button>
+        <button class="btn" style="justify-content:center;padding:9px" onclick="toggleHeroEdit()">${lang==='en'?'Cancel':lang==='zht'?'取消':'取消'}</button>
+      </div>
+    </div>
+  </div>`:'' ;
+  r.innerHTML=`<div class="${heroClass}" style="position:relative">${heroBg}${adminHeroBar}<div class="hero-content"><h1>${heroTitle}</h1><p>${heroSub}</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn p" onclick="document.getElementById('mp').scrollIntoView({behavior:'smooth'})">${t('shopNow')}</button>${!db.cur?`<button class="btn" onclick="go('reg')">${t('registerWithCode')}</button>`:''}</div></div></div>
   <div class="filters">${Object.entries(CATS_KEY).map(([val,key])=>`<button class="fpill ${activeCat===val?'on':''}" onclick="activeCat='${val}';rShopProducts()">${t(key)}</button>`).join('')}</div>
   <div class="prods" id="mp"></div>`;
   rShopProducts();
 }
+function toggleHeroEdit(){
+  const panel=document.getElementById('hero-edit-panel');
+  if(!panel)return;
+  const isOpen=panel.style.display==='flex';
+  panel.style.display=isOpen?'none':'flex';
+}
+function saveHeroText(){
+  const title=document.getElementById('hero-title-input')?.value.trim();
+  const sub=document.getElementById('hero-sub-input')?.value.trim();
+  if(!title&&!sub){document.getElementById('hero-edit-msg').innerHTML='<div class="m e" style="font-size:12px">Please enter at least a title or subtitle.</div>';return;}
+  if(title)db.heroTextTitle=title;
+  if(sub)db.heroTextSub=sub;
+  sv();
+  toggleHeroEdit();
+  rShop(document.getElementById('root'));
+}
+function handleHeroImgInline(e){
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{db.heroImage=ev.target.result;sv();rShop(document.getElementById('root'));setTimeout(()=>{const p=document.getElementById('hero-edit-panel');if(p)p.style.display='flex';},50);};
+  rd.readAsDataURL(f);
+}
+function removeHeroImgInline(){db.heroImage='';sv();rShop(document.getElementById('root'));setTimeout(()=>{const p=document.getElementById('hero-edit-panel');if(p)p.style.display='flex';},50);}
 function rShopProducts(){
   const grid=document.getElementById('mp');if(!grid)return;
   document.querySelectorAll('.fpill').forEach((b,i)=>{const val=Object.keys(CATS_KEY)[i];b.classList.toggle('on',val===activeCat);b.textContent=t(Object.values(CATS_KEY)[i]);});
@@ -724,7 +785,7 @@ function doAdm(){const em=document.getElementById('a-email').value.trim().toLowe
 let atab='products';
 function rAdm(r){
   if(!db.adm){rAdmLogin(r);return;}
-  r.innerHTML=`<div class="pgw"><div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:1rem;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:1.5rem"><div><div style="font-size:18px;font-weight:500">${t('adminPanel')}</div></div><button class="btn sm d" onclick="db.adm=false;sv();go('shop')">${t('logout')}</button></div>
+  r.innerHTML=`<div class="pgw"><div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:1rem;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:1.5rem"><div><div style="font-size:18px;font-weight:500">${t('adminPanel')}</div></div><div style="display:flex;gap:8px"><button class="btn sm" onclick="go('shop')">${lang==='en'?'← View Shop':lang==='zht'?'← 查看商店':'← 查看商店'}</button><button class="btn sm d" onclick="db.adm=false;sv();go('shop')">${t('logout')}</button></div></div>
     <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem"><div class="sc"><div class="sl">${t('activeProducts')}</div><div class="sv">${db.products.filter(p=>p.active).length}<span style="font-size:13px;color:var(--color-text-secondary)">/${db.products.length}</span></div></div><div class="sc"><div class="sl">${t('activeReferrers')}</div><div class="sv">${db.referrers.filter(r=>r.active).length}<span style="font-size:13px;color:var(--color-text-secondary)">/${db.referrers.length}</span></div></div><div class="sc"><div class="sl">${t('registeredMembers')}</div><div class="sv">${db.users.length}</div></div><div class="sc" style="cursor:pointer" onclick="toggleFeeEdit()" title="Click to edit"><div style="display:flex;align-items:center;justify-content:space-between"><div class="sl">${t('feeRateLabel')}</div><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#a3a199" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l2 2-7 7H3v-2L10 2z"/></svg></div><div id="fee-display" style="font-size:18px;font-weight:500;margin-top:4px;color:#854F0B">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</div><div id="fee-edit" style="display:none;margin-top:6px"><div style="display:flex;gap:6px;align-items:center"><input type="number" id="fee-input" value="${(FEE_RATE*100).toFixed(4)}" min="0" max="100" step="0.01" style="width:70px;padding:4px 7px;font-size:13px" onclick="event.stopPropagation()"><span style="font-size:13px;color:var(--color-text-secondary)">%</span><button class="btn p sm" onclick="event.stopPropagation();saveFeeRate()">${lang==='en'?'Save':(lang==='zht'?'儲存':'保存')}</button></div><div id="fee-msg" style="margin-top:4px"></div></div></div></div>
     <div class="tabs"><div class="tab ${atab==='products'?'on':''}" onclick="atab='products';rAdm(document.getElementById('root'))">${t('productsTab')}</div><div class="tab ${atab==='referrers'?'on':''}" onclick="atab='referrers';rAdm(document.getElementById('root'))">${t('referrersTab')}</div><div class="tab ${atab==='addref'?'on':''}" onclick="atab='addref';rAdm(document.getElementById('root'))">${t('addReferrer')}</div><div class="tab ${atab==='members'?'on':''}" onclick="atab='members';rAdm(document.getElementById('root'))">${t('membersTab')}</div><div class="tab ${atab==='settings'?'on':''}" onclick="atab='settings';rAdm(document.getElementById('root'))">${t('settingsTab')}</div></div>
     <div id="atc"></div></div>`;
@@ -760,10 +821,23 @@ function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.activ
 function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmMem(tc){tc.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>${t('memberName')}</th><th>${t('email')}</th><th>${t('referrer')}</th><th>${t('referralCode')}</th><th>${t('regDate')}</th><th>${t('orders')}</th></tr></thead><tbody>${db.users.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:2rem">${t('noMembers')}</td></tr>`:db.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="ava" style="width:24px;height:24px;font-size:10px">${ini(u.name)}</div><span style="font-weight:500">${u.name}</span></div></td><td style="color:var(--color-text-secondary)">${u.email}</td><td><span class="bdg a">${u.referrerName}</span></td><td><span class="code">${refById(u.referrerId)?.code||'—'}</span></td><td style="color:var(--color-text-secondary)">${u.joined}</td><td>${u.orders||0}</td></tr>`).join('')}</tbody></table></div>`;}
 
-function rAdmSettings(tc){const heroImg=db.heroImage||'';tc.innerHTML=`<div style="max-width:480px">
+function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.heroTextTitle||'';const heroSub=db.heroTextSub||'';tc.innerHTML=`<div style="max-width:480px">
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem">
-  <div style="font-size:15px;font-weight:500;margin-bottom:1rem">${lang==='en'?'Hero Banner Image':(lang==='zht'?'首頁橫幅圖片':'首页横幅图片')}</div>
-  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">${lang==='en'?'This large photo appears at the top of the shop page. Recommended: wide landscape image (1400×600px or similar).':(lang==='zht'?'這張大圖顯示在商店頁面頂部。建議使用寬橫幅圖片。':'这张大图显示在商店页面顶部。建议使用宽横幅图片。')}</div>
+  <div style="font-size:15px;font-weight:500;margin-bottom:4px">${lang==='en'?'Hero Banner':lang==='zht'?'首頁橫幅':'首页横幅'}</div>
+  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">${lang==='en'?'Edit the homepage hero title, subtitle, and background image.':lang==='zht'?'編輯首頁橫幅標題、副標題和背景圖片。':'编辑首页横幅标题、副标题和背景图片。'}</div>
+  <div id="hero-text-msg"></div>
+  <div class="fl" style="margin-bottom:10px">
+    <label>${lang==='en'?'Title':lang==='zht'?'標題':'标题'}</label>
+    <input type="text" id="stg-hero-title" value="${heroTitle}" placeholder="${lang==='en'?'Fresh from the source':lang==='zht'?'源自自然的美味':'源自自然的美味'}" style="width:100%">
+  </div>
+  <div class="fl" style="margin-bottom:14px">
+    <label>${lang==='en'?'Subtitle':lang==='zht'?'副標題':'副标题'}</label>
+    <textarea id="stg-hero-sub" rows="2" style="width:100%;font-family:var(--font-sans)">${heroSub}</textarea>
+  </div>
+  <button class="btn p sm" style="margin-bottom:14px" onclick="saveHeroTextSettings()">${lang==='en'?'Save Text':lang==='zht'?'儲存文字':'保存文字'}</button>
+  <div class="dv"></div>
+  <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:12px 0 6px">${lang==='en'?'Background Image':lang==='zht'?'背景圖片':'背景图片'}</div>
+  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:10px">${lang==='en'?'Recommended: wide landscape image (1400×600px or similar).':lang==='zht'?'建議使用寬橫幅圖片（1400×600像素）。':'建议使用宽横幅图片（1400×600像素）。'}</div>
   ${heroImg?`<div style="margin-bottom:12px;border-radius:var(--border-radius-md);overflow:hidden;border:.5px solid var(--color-border-tertiary)"><img src="${heroImg}" style="width:100%;height:180px;object-fit:cover;display:block"></div>`:''}
   <label class="img-upload-box" style="display:block;cursor:pointer;margin-bottom:8px">
     <div style="font-size:12px;color:var(--color-text-secondary)">${heroImg?(lang==='en'?'Click to replace banner image':(lang==='zht'?'點擊更換圖片':'点击更换图片')):(lang==='en'?'Click to upload banner image (JPG/PNG/WebP)':(lang==='zht'?'點擊上傳橫幅圖片':'点击上传横幅图片'))}</div>
@@ -774,7 +848,8 @@ function rAdmSettings(tc){const heroImg=db.heroImage||'';tc.innerHTML=`<div styl
 </div>
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
 function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.heroImage=ev.target.result;sv();const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
-function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
+function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}
+function saveHeroTextSettings(){const title=document.getElementById('stg-hero-title')?.value.trim(),sub=document.getElementById('stg-hero-sub')?.value.trim(),msg=document.getElementById('hero-text-msg');if(title!==undefined)db.heroTextTitle=title;if(sub!==undefined)db.heroTextSub=sub;sv();if(msg)msg.innerHTML='<div class="m s" style="font-size:12px">'+(lang==='en'?'Text saved!':lang==='zht'?'文字已儲存！':'文字已保存！')+'</div>';setTimeout(()=>{if(msg)msg.innerHTML='';},2000);}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
 function saveAdminSettings(){const em=document.getElementById('stg-email').value.trim().toLowerCase(),cur=document.getElementById('stg-cur-pw').value,npw=document.getElementById('stg-new-pw').value,npw2=document.getElementById('stg-new-pw2').value,msg=document.getElementById('stg-msg');if(cur!==db.adminPassword){msg.innerHTML=`<div class="m e">${t('errorCurrentPassword')}</div>`;return;}if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(npw&&npw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(npw&&npw!==npw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}db.adminEmail=em;if(npw)db.adminPassword=npw;sv();msg.innerHTML=`<div class="m s">${t('credentialsSaved')}</div>`;document.getElementById('stg-cur-pw').value='';document.getElementById('stg-new-pw').value='';document.getElementById('stg-new-pw2').value='';if(document.getElementById('stg-sb'))document.getElementById('stg-sb').style.width='0%';}
 
 function toggleFeeEdit(){const ed=document.getElementById('fee-edit'),disp=document.getElementById('fee-display');if(!ed||!disp)return;const isOpen=ed.style.display==='block';ed.style.display=isOpen?'none':'block';if(!isOpen){document.getElementById('fee-input').value=(FEE_RATE*100).toFixed(4).replace(/\.?0+$/,'');document.getElementById('fee-input').focus();}}
