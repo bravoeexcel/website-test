@@ -1,128 +1,254 @@
-input, select, textarea, button { font-family: var(--font-sans); font-size: 13px; outline: none; }
-input, select, textarea { border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 7px 10px; background: var(--color-background-primary); color: var(--color-text-primary); }
-input:focus, select:focus, textarea:focus { border-color: var(--color-border-primary); }
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harvest — Fresh from the source</title>
+  <style>
+    /* Reset & base */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', monospace;
+      --color-text-primary: #1a1a18;
+      --color-text-secondary: #6b6a63;
+      --color-text-tertiary: #a3a199;
+      --color-background-primary: #ffffff;
+      --color-background-secondary: #f5f4f0;
+      --color-border-primary: #c8c6bc;
+      --color-border-secondary: #dddbd3;
+      --color-border-tertiary: #eae9e3;
+      --border-radius-md: 8px;
+      --border-radius-lg: 12px;
+    }
+    body { font-family: var(--font-sans); color: var(--color-text-primary); font-size: 14px; background: var(--color-background-primary); }
+    input, select, textarea, button { font-family: var(--font-sans); font-size: 13px; outline: none; }
+    input, select, textarea { border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 7px 10px; background: var(--color-background-primary); color: var(--color-text-primary); }
+    input:focus, select:focus, textarea:focus { border-color: var(--color-border-primary); }
 
-.nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: .875rem 1.5rem; border-bottom: .5px solid var(--color-border-tertiary); background: var(--color-background-primary); gap: 8px; position: sticky; top: 0; z-index: 50; }
-.logo { font-size: 18px; font-weight: 500; cursor: pointer; letter-spacing: -.4px; text-align: center; }
-.nav-c { display: flex; gap: 1.5rem; }
-@@ -40,7 +40,7 @@
-.lang-toggle { display: flex; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); overflow: hidden; }
-.lang-btn { padding: 4px 10px; cursor: pointer; background: transparent; border: none; color: var(--color-text-secondary); font-size: 12px; }
-.lang-btn.on { background: var(--color-text-primary); color: var(--color-background-primary); }
- 
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1.5rem; border-bottom: .5px solid var(--color-border-tertiary); background: var(--color-background-primary); gap: 8px; position: sticky; top: 0; z-index: 50; }
+    .logo { font-size: 18px; font-weight: 500; cursor: pointer; letter-spacing: -.4px; flex-shrink: 0; }
+    .nav-c { display: flex; gap: 1.5rem; }
+    .nav-c a { font-size: 13px; color: var(--color-text-secondary); cursor: pointer; text-decoration: none; }
+    .nav-c a:hover { color: var(--color-text-primary); }
+    .nav-r { display: flex; align-items: center; gap: 8px; }
+    .rate-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; background: var(--color-background-secondary); border: .5px solid var(--color-border-secondary); border-radius: 999px; padding: 3px 10px; color: var(--color-text-secondary); }
+    .rate-dot { width: 6px; height: 6px; border-radius: 50%; background: #FAC775; flex-shrink: 0; }
+    .rate-dot.live { background: #97C459; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .rate-dot.loading { animation: pulse 1s infinite; }
+    /* Language dropdown */
+    .lang-dd { position: relative; }
+    .lang-dd-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; background: transparent; border: none; color: var(--color-text-secondary); padding: 4px 2px; }
+    .lang-dd-btn:hover { color: var(--color-text-primary); }
+    .lang-dd-btn svg { opacity: .5; }
+    .lang-dd-menu { position: absolute; right: 0; top: calc(100% + 6px); background: var(--color-background-primary); border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); box-shadow: 0 4px 16px rgba(0,0,0,.08); min-width: 110px; overflow: hidden; display: none; z-index: 200; }
+    .lang-dd-menu.open { display: block; }
+    .lang-dd-item { display: block; width: 100%; text-align: left; padding: 8px 14px; font-size: 13px; cursor: pointer; background: transparent; border: none; color: var(--color-text-secondary); }
+    .lang-dd-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+    .lang-dd-item.on { color: var(--color-text-primary); font-weight: 500; }
+    /* Nav link-style buttons (no border) */
+    .nav-link-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; background: transparent; border: none; color: var(--color-text-secondary); padding: 4px 2px; }
+    .nav-link-btn:hover { color: var(--color-text-primary); }
+    /* Legacy lang-toggle hidden */
+    .lang-toggle { display: none; }
 
-.btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 14px; background: transparent; color: var(--color-text-primary); }
-.btn:hover { background: var(--color-background-secondary); }
-.btn:active { transform: scale(.98); }
-@@ -54,14 +54,14 @@
-.bdg.g { background: #EAF3DE; color: #3B6D11; }
-.bdg.b { background: #E6F1FB; color: #185FA5; }
-.bdg.a { background: #FAEEDA; color: #854F0B; }
- 
+    .btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 14px; background: transparent; color: var(--color-text-primary); }
+    .btn:hover { background: var(--color-background-secondary); }
+    .btn:active { transform: scale(.98); }
+    .btn.p { background: var(--color-text-primary); color: var(--color-background-primary); border-color: transparent; }
+    .btn.p:hover { opacity: .85; }
+    .btn.sm { font-size: 12px; padding: 4px 10px; }
+    .btn.d { border-color: #F09595; color: #A32D2D; }
+    .btn.d:hover { background: #FCEBEB; }
+    .ava { width: 30px; height: 30px; border-radius: 50%; background: #EAF3DE; color: #3B6D11; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; cursor: pointer; border: .5px solid #C0DD97; }
+    .bdg { border-radius: 999px; font-size: 11px; font-weight: 500; padding: 2px 8px; display: inline-block; }
+    .bdg.g { background: #EAF3DE; color: #3B6D11; }
+    .bdg.b { background: #E6F1FB; color: #185FA5; }
+    .bdg.a { background: #FAEEDA; color: #854F0B; }
 
-.hero { padding: 3rem 1.5rem; background: var(--color-background-secondary); text-align: center; }
-.hero h1 { font-size: 28px; font-weight: 500; margin-bottom: 8px; letter-spacing: -.5px; }
-.hero p { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 1.25rem; }
-.filters { display: flex; gap: 8px; padding: 1rem 1.5rem; flex-wrap: wrap; border-bottom: .5px solid var(--color-border-tertiary); }
-.fpill { padding: 5px 14px; border-radius: 999px; font-size: 12px; cursor: pointer; border: .5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); }
-.fpill.on { background: var(--color-text-primary); color: var(--color-background-primary); border-color: transparent; }
- 
+    .hero { position: relative; min-height: 480px; display: flex; align-items: center; justify-content: center; text-align: center; background: var(--color-background-secondary); overflow: hidden; }
+    .hero-bg { position: absolute; inset: 0; object-fit: cover; width: 100%; height: 100%; }
+    .hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.35); }
+    .hero-content { position: relative; z-index: 2; padding: 4rem 1.5rem; }
+    .hero.no-img .hero-overlay { display: none; }
+    .hero.no-img .hero-content h1 { color: var(--color-text-primary); }
+    .hero.no-img .hero-content p { color: var(--color-text-secondary); }
+    .hero h1 { font-size: 42px; font-weight: 500; margin-bottom: 12px; letter-spacing: -.8px; color: #fff; }
+    .hero p { font-size: 16px; color: rgba(255,255,255,.85); margin-bottom: 1.75rem; }
+    .hero.no-img h1 { color: var(--color-text-primary); }
+    .hero.no-img p { color: var(--color-text-secondary); }
+    .filters { display: flex; gap: 8px; padding: 1rem 1.5rem; flex-wrap: wrap; border-bottom: .5px solid var(--color-border-tertiary); }
+    .fpill { padding: 5px 14px; border-radius: 999px; font-size: 12px; cursor: pointer; border: .5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); }
+    .fpill.on { background: var(--color-text-primary); color: var(--color-background-primary); border-color: transparent; }
 
-.prods { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; padding: 1.5rem; }
-.pc { background: var(--color-background-primary); border: .5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
-.pc:hover { border-color: var(--color-border-secondary); }
-@@ -76,10 +76,10 @@
-.ab { font-size: 12px; padding: 4px 10px; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-secondary); background: transparent; cursor: pointer; white-space: nowrap; }
-.ab:hover { background: var(--color-background-secondary); }
-.tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-bottom: 4px; font-weight: 500; background: #EAF3DE; color: #3B6D11; }
- 
+    .prods { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; padding: 1.5rem; }
+    .pc { background: var(--color-background-primary); border: .5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+    .pc:hover { border-color: var(--color-border-secondary); }
+    .pi { height: 90px; display: flex; align-items: center; justify-content: center; font-size: 32px; background: var(--color-background-secondary); overflow: hidden; }
+    .pi img { width: 100%; height: 100%; object-fit: cover; }
+    .pb { padding: 10px 12px; }
+    .pn { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+    .pd { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .pf { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .price-cny { font-size: 15px; font-weight: 500; }
+    .price-usd { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+    .ab { font-size: 12px; padding: 4px 10px; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-secondary); background: transparent; cursor: pointer; white-space: nowrap; }
+    .ab:hover { background: var(--color-background-secondary); }
+    .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-bottom: 4px; font-weight: 500; background: #EAF3DE; color: #3B6D11; }
 
-.cart-drawer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-background-primary); border-top: 1px solid var(--color-border-secondary); padding: 1.25rem 1.5rem; max-height: 70vh; overflow-y: auto; z-index: 100; box-shadow: 0 -4px 24px rgba(0,0,0,.08); }
-.cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 99; }
- 
+    .cart-drawer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-background-primary); border-top: 1px solid var(--color-border-secondary); padding: 1.25rem 1.5rem; max-height: 70vh; overflow-y: auto; z-index: 100; box-shadow: 0 -4px 24px rgba(0,0,0,.08); }
+    .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 99; }
 
-.ov { background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; min-height: 480px; }
-.mod { background: var(--color-background-primary); border: .5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; width: 100%; max-width: 420px; }
-.mod h2 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
-@@ -98,7 +98,7 @@
-.sw { text-align: center; margin-top: 14px; font-size: 12px; color: var(--color-text-secondary); }
-.sw a { color: var(--color-text-primary); cursor: pointer; text-decoration: underline; }
-.dv { height: .5px; background: var(--color-border-tertiary); margin: 1rem 0; }
- 
+    .ov { background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; min-height: 480px; }
+    .mod { background: var(--color-background-primary); border: .5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; width: 100%; max-width: 420px; }
+    .mod h2 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+    .msub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.25rem; line-height: 1.6; }
+    .fl { margin-bottom: 10px; }
+    .fl label { display: block; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; font-weight: 500; }
+    .fl input, .fl select, .fl textarea { width: 100%; }
+    .fl textarea { height: 60px; resize: vertical; }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sb { height: 3px; border-radius: 2px; margin-top: 5px; transition: width .2s, background .2s; }
+    .m { font-size: 12px; border-radius: var(--border-radius-md); padding: 8px 12px; margin-bottom: 10px; line-height: 1.5; }
+    .m.e { color: #A32D2D; background: #FCEBEB; }
+    .m.s { color: #3B6D11; background: #EAF3DE; }
+    .m.i { color: #185FA5; background: #E6F1FB; }
+    .m.w { color: #854F0B; background: #FAEEDA; }
+    .sw { text-align: center; margin-top: 14px; font-size: 12px; color: var(--color-text-secondary); }
+    .sw a { color: var(--color-text-primary); cursor: pointer; text-decoration: underline; }
+    .dv { height: .5px; background: var(--color-border-tertiary); margin: 1rem 0; }
 
-.pg { max-width: 560px; margin: 2rem auto; padding: 0 1.5rem; }
-.pgw { padding: 1.5rem; }
-.sc { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; }
-@@ -108,19 +108,19 @@
-.tab { padding: 9px 16px; font-size: 13px; cursor: pointer; color: var(--color-text-secondary); border-bottom: 2px solid transparent; margin-bottom: -.5px; white-space: nowrap; }
-.tab:hover { color: var(--color-text-primary); }
-.tab.on { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); font-weight: 500; }
- 
+    .pg { max-width: 560px; margin: 2rem auto; padding: 0 1.5rem; }
+    .pgw { padding: 1.5rem; }
+    .sc { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; }
+    .sl { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+    .sv { font-size: 22px; font-weight: 500; }
+    .tabs { display: flex; border-bottom: .5px solid var(--color-border-tertiary); margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab { padding: 9px 16px; font-size: 13px; cursor: pointer; color: var(--color-text-secondary); border-bottom: 2px solid transparent; margin-bottom: -.5px; white-space: nowrap; }
+    .tab:hover { color: var(--color-text-primary); }
+    .tab.on { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); font-weight: 500; }
 
-.prod-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: .5px solid var(--color-border-tertiary); }
-.prod-row:last-child { border-bottom: none; }
-.prod-thumb { width: 44px; height: 44px; border-radius: var(--border-radius-md); background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden; }
-.prod-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.prod-edit-form { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 16px; margin-bottom: 10px; border: .5px solid var(--color-border-tertiary); }
-.img-upload-box { border: .5px dashed var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 12px; text-align: center; cursor: pointer; background: var(--color-background-primary); }
-.img-upload-box:hover { background: var(--color-background-secondary); }
- 
+    .prod-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: .5px solid var(--color-border-tertiary); }
+    .prod-row:last-child { border-bottom: none; }
+    .prod-thumb { width: 44px; height: 44px; border-radius: var(--border-radius-md); background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden; }
+    .prod-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .prod-edit-form { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 16px; margin-bottom: 10px; border: .5px solid var(--color-border-tertiary); }
+    .img-upload-box { border: .5px dashed var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 12px; text-align: center; cursor: pointer; background: var(--color-background-primary); }
+    .img-upload-box:hover { background: var(--color-background-secondary); }
 
-.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
-.dot.g { background: #639922; } .dot.r { background: #E24B4A; }
-.code { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); border: .5px solid var(--color-border-secondary); border-radius: 6px; padding: 2px 8px; letter-spacing: .5px; }
- 
+    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+    .dot.g { background: #639922; } .dot.r { background: #E24B4A; }
+    .code { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); border: .5px solid var(--color-border-secondary); border-radius: 6px; padding: 2px 8px; letter-spacing: .5px; }
 
-.checkout-page { max-width: 480px; margin: 2rem auto; padding: 0 1.5rem; }
-.pay-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: none; margin-bottom: 10px; }
-.pay-btn:active { transform: scale(.98); }
-@@ -131,7 +131,7 @@
-.orow.sub { color: var(--color-text-secondary); }
-.orow.fee { color: #854F0B; }
-.orow.total { font-weight: 500; font-size: 15px; }
- 
+    .checkout-page { max-width: 480px; margin: 2rem auto; padding: 0 1.5rem; }
+    .pay-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: none; margin-bottom: 10px; }
+    .pay-btn:active { transform: scale(.98); }
+    .pay-alipay { background: #1677FF; color: #fff; } .pay-alipay:hover { opacity: .9; }
+    .pay-wechat { background: #07C160; color: #fff; } .pay-wechat:hover { opacity: .9; }
+    .order-box { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 14px 16px; margin-bottom: 1.25rem; }
+    .orow { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 13px; }
+    .orow.sub { color: var(--color-text-secondary); }
+    .orow.fee { color: #854F0B; }
+    .orow.total { font-weight: 500; font-size: 15px; }
 
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th { text-align: left; padding: 7px 10px; font-weight: 500; color: var(--color-text-secondary); border-bottom: .5px solid var(--color-border-tertiary); font-size: 11px; }
-td { padding: 8px 10px; border-bottom: .5px solid var(--color-border-tertiary); vertical-align: middle; }
-@@ -147,7 +147,7 @@
-</style>
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; padding: 7px 10px; font-weight: 500; color: var(--color-text-secondary); border-bottom: .5px solid var(--color-border-tertiary); font-size: 11px; }
+    td { padding: 8px 10px; border-bottom: .5px solid var(--color-border-tertiary); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--color-background-secondary); }
+    .sect { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .5px; margin: 14px 0 8px; padding-bottom: 4px; border-bottom: .5px solid var(--color-border-tertiary); }
+    .qr-upload-box { border: .5px dashed var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 14px; text-align: center; cursor: pointer; background: var(--color-background-primary); }
+    .qr-upload-box:hover { background: var(--color-background-secondary); }
+    .qr-display { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .qr-item { text-align: center; font-size: 11px; }
+    .qr-item img { width: 64px; height: 64px; object-fit: cover; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-tertiary); display: block; margin-bottom: 4px; }
+    .qr-preview { width: 80px; height: 80px; object-fit: cover; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-tertiary); }
+  </style>
 </head>
 <body>
- 
 
 <nav class="nav">
-<div class="nav-c">
-<a onclick="go('shop')" id="nav-shop">Shop</a>
-@@ -164,17 +164,16 @@
-<div class="nav-r" id="nr"></div>
-</div>
+  <span class="logo" onclick="go('shop')">Harvest</span>
+  <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;justify-content:flex-end">
+    <div class="rate-chip"><span class="rate-dot loading" id="rdot"></span><span id="rlbl">...</span></div>
+    <!-- Language dropdown -->
+    <div class="lang-dd" id="lang-dd">
+      <button class="lang-dd-btn" id="lang-dd-btn" onclick="toggleLangDd(event)">
+        <span id="lang-label">EN</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="lang-dd-menu" id="lang-dd-menu">
+        <button class="lang-dd-item on" id="lb-en" onclick="setLang('en');closeLangDd()">EN · English</button>
+        <button class="lang-dd-item" id="lb-zh" onclick="setLang('zh');closeLangDd()">简体 · 中文</button>
+        <button class="lang-dd-item" id="lb-zht" onclick="setLang('zht');closeLangDd()">繁體 · 中文</button>
+      </div>
+    </div>
+    <a class="nav-c" style="display:flex;gap:1.25rem;align-items:center">
+      <span onclick="go('shop')" id="nav-shop" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer">Shop</span>
+      <span onclick="go('admin-login')" id="nav-admin" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer">Admin</span>
+    </a>
+    <div class="nav-r" id="nr"></div>
+  </div>
 </nav>
- 
 
 <div id="cart-overlay" class="cart-overlay" style="display:none" onclick="closeCart()"></div>
 <div id="cart-drawer" class="cart-drawer" style="display:none"></div>
 <div id="root"></div>
- 
 
 <script>
-const APW='admin123';
 let FEE_RATE=0.015;
 let rate=0;
 let lang='en';
- 
 
 const T={
-en:{
-shop:'Shop',admin:'Admin',signIn:'Sign In',register:'Register',
-@@ -223,9 +222,17 @@
-noReferrers:'No referrers yet — add one first.',
-memberName:'Member Name',referrer:'Referrer',regDate:'Joined',
-noMembers:'No members yet',
-    adminPassword:'Admin Password',enterAdmin:'Enter Admin',
-    wrongPassword:'Incorrect password.',adminOnly:'Admin access only',
-    demoPass:'Demo password: admin123',
+  en:{
+    shop:'Shop',admin:'Admin',signIn:'Sign In',register:'Register',
+    cart:'Cart',myAccount:'My Account',logout:'Sign Out',
+    heroTitle:'Fresh from the source',heroSub:'Artisan foods & drinks, delivered to your door',
+    shopNow:'Shop Now',registerWithCode:'Register with Referral Code →',
+    allCats:'All',pantry:'Pantry',drinks:'Drinks',snacks:'Snacks',fresh:'Fresh',
+    addToCart:'Add',noCatProds:'No products in this category',
+    cartTitle:'Cart',cartEmpty:'Your cart is empty',subtotal:'Subtotal',
+    fee:'Service Fee',feeRate:'1.5%',total:'Total',checkout:'Proceed to Checkout →',
+    referralCode:'Referral Code',referralCodePlaceholder:'e.g. CHEN-R1',
+    validCode:'Valid code · Referrer:',invalidCode:'Invalid or inactive code',
+    firstName:'First Name',lastName:'Last Name',email:'Email Address',
+    password:'Password',confirmPassword:'Confirm Password',createAccount:'Create Account',
+    alreadyHave:'Already have an account?',signInHere:'Sign in here',
+    noAccount:"Don't have an account?",registerHere:'Register here',
+    welcomeBack:'Welcome back to Harvest',signInBtn:'Sign In',
+    refBy:'Referred by',joined:'Member since',orders:'Orders',
+    saveChanges:'Save Changes',backToShop:'← Back to shop',
+    orderSummary:'Order Summary',paymentMethod:'Select Payment Method',
+    alipayPay:'Pay with Alipay',wechatPay:'Pay with WeChat',
+    payTo:'Scan to pay',amount:'Amount Due',
+    noQr:'Referrer has not uploaded a QR code. Please contact',noQrSuffix:'.',
+    confirmPaid:'I have completed payment ✓',thankYou:'Thank you for your order!',
+    thankYouSub:'Please send your payment screenshot to your referrer to confirm. They will arrange delivery after verification.',
+    backToShopBtn:'Back to Shop',
+    noteInstructions:'Please include your name in the payment note:',
+    screenshotNote:'After paying, send a screenshot to your referrer to confirm.',
+    adminPanel:'Admin Panel',productsTab:'Products',referrersTab:'Referrers',
+    addReferrer:'Add Referrer',membersTab:'Members',
+    activeProducts:'Active Products',activeReferrers:'Active Referrers',
+    registeredMembers:'Members',feeRateLabel:'Fee Rate',
+    addProduct:'+ Add Product',addProductTitle:'Add New Product',
+    productName:'Product Name *',emojiIcon:'Emoji Icon',
+    description:'Description',usdPrice:'USD Price *',category:'Category',
+    tagLabel:'Tag',status:'Status',active:'Active',inactive:'Inactive',
+    saveProduct:'Save Product',cancel:'Cancel',edit:'Edit',
+    deactivate:'Deactivate',activate:'Activate',delete:'Delete',
+    saved:'Saved!',productAdded:'Product added!',
+    referrerName:'Name *',iMemberNo:'iGlobal Member No.',address:'Address',
+    country:'Country',phone:'Phone Number',referralCodeLabel:'Referral Code *',
+    note:'Notes',saveReferrer:'Save Referrer',random:'Random',
+    alipayQr:'Alipay QR Code',wechatQr:'WeChat QR Code',
+    uploadQr:'Click to upload',replaceQr:'Uploaded — click to replace',
+    removeQr:'Remove',qrNote:'Customers scan this QR to pay at checkout.',
+    noReferrers:'No referrers yet — add one first.',
+    memberName:'Member Name',referrer:'Referrer',regDate:'Joined',
+    noMembers:'No members yet',
     adminPassword:'Admin Password',adminEmail:'Admin Email',enterAdmin:'Sign In',
     wrongPassword:'Incorrect email or password.',adminOnly:'Admin access only',
     demoPass:'',
@@ -134,16 +260,69 @@ noMembers:'No members yet',
     saveCredentials:'Save Credentials',credentialsSaved:'Credentials updated!',
     errorCurrentPassword:'Current password is incorrect.',errorEmailRequired:'Email is required.',
     errorPassMismatch:'Passwords do not match.',errorPassShort:'Password must be at least 8 characters.',
-errorFillAll:'Please fill in all fields.',
-errorEmail:'Please enter a valid email address.',
-errorPassLen:'Password must be at least 8 characters.',
-@@ -289,9 +296,17 @@
-noReferrers:'暂无推荐人 — 请先添加。',
-memberName:'会员姓名',referrer:'推荐人',regDate:'注册时间',
-noMembers:'暂无会员',
-    adminPassword:'管理员密码',enterAdmin:'进入后台',
-    wrongPassword:'密码错误。',adminOnly:'仅限管理员访问',
-    demoPass:'演示密码：admin123',
+    errorFillAll:'Please fill in all fields.',
+    errorEmail:'Please enter a valid email address.',
+    errorPassLen:'Password must be at least 8 characters.',
+    errorPassMatch:'Passwords do not match.',
+    errorEmailTaken:'This email is already registered.',
+    errorInvalidCode:'Please enter a valid referral code.',
+    errorNamePrice:'Product name and price are required.',
+    errorCodeExists:'This referral code already exists.',
+    errorDupCode:'This code is already used by another referrer.',
+    errorDeleteReferrer:'Cannot delete: this referrer has members. Please deactivate instead.',
+    orderDetails:'Order Details',payTo2:'Payment to',
+    inactive2:'Inactive',active2:'Active',
+    uploadImg:'Click to upload product image (JPG/PNG)',
+    uploadImgNote:'If no image, Emoji icon will be used',
+    replaceImg:'Click to replace image',removeImg:'Remove image',
+  },
+  zh:{
+    shop:'商店',admin:'管理后台',signIn:'登录',register:'注册',
+    cart:'购物车',myAccount:'我的账户',logout:'退出',
+    heroTitle:'源自自然的美味',heroSub:'精选食品与饮品，直达您的门口',
+    shopNow:'立即选购',registerWithCode:'持推荐码注册 →',
+    allCats:'全部',pantry:'食品柜',drinks:'饮品',snacks:'零食',fresh:'新鲜',
+    addToCart:'加入',noCatProds:'该分类暂无商品',
+    cartTitle:'购物车',cartEmpty:'购物车是空的',subtotal:'小计',
+    fee:'手续费',feeRate:'1.5%',total:'应付总额',checkout:'前往结账 →',
+    referralCode:'推荐码',referralCodePlaceholder:'例如：CHEN-R1',
+    validCode:'有效推荐码 · 推荐人：',invalidCode:'推荐码无效或已停用',
+    firstName:'姓',lastName:'名',email:'电子邮件',
+    password:'密码',confirmPassword:'确认密码',createAccount:'创建账户',
+    alreadyHave:'已有账户？',signInHere:'立即登录',
+    noAccount:'还没有账户？',registerHere:'持推荐码注册',
+    welcomeBack:'欢迎回到 Harvest',signInBtn:'登录',
+    refBy:'推荐人',joined:'注册时间',orders:'订单数量',
+    saveChanges:'保存更改',backToShop:'← 返回商店',
+    orderSummary:'确认订单',paymentMethod:'选择付款方式',
+    alipayPay:'支付宝扫码付款',wechatPay:'微信扫码付款',
+    payTo:'扫码付款给',amount:'实付金额',
+    noQr:'推荐人暂未上传收款码，请联系',noQrSuffix:'。',
+    confirmPaid:'我已完成付款 ✓',thankYou:'感谢您的订单！',
+    thankYouSub:'请将付款截图发送给推荐人确认，核实后将安排发货。',
+    backToShopBtn:'返回商店',
+    noteInstructions:'请在付款备注中填写：',
+    screenshotNote:'付款后截图发给推荐人确认。',
+    adminPanel:'管理后台',productsTab:'商品管理',referrersTab:'推荐人管理',
+    addReferrer:'添加推荐人',membersTab:'会员列表',
+    activeProducts:'上架商品',activeReferrers:'活跃推荐人',
+    registeredMembers:'注册会员',feeRateLabel:'手续费率',
+    addProduct:'+ 添加商品',addProductTitle:'添加新商品',
+    productName:'商品名称 *',emojiIcon:'Emoji 图标',
+    description:'商品描述',usdPrice:'美元价格 (USD) *',category:'分类',
+    tagLabel:'标签',status:'状态',active:'上架',inactive:'下架',
+    saveProduct:'保存商品',cancel:'取消',edit:'编辑',
+    deactivate:'下架',activate:'上架',delete:'删除',
+    saved:'已保存！',productAdded:'商品已添加！',
+    referrerName:'姓名 *',iMemberNo:'伊环球会员号码',address:'地址',
+    country:'国家',phone:'电话号码',referralCodeLabel:'推荐码 *',
+    note:'备注',saveReferrer:'保存推荐人',random:'随机',
+    alipayQr:'支付宝收款码',wechatQr:'微信收款码',
+    uploadQr:'点击上传',replaceQr:'已上传，点击更换',
+    removeQr:'移除',qrNote:'客户结账时扫码付款。',
+    noReferrers:'暂无推荐人 — 请先添加。',
+    memberName:'会员姓名',referrer:'推荐人',regDate:'注册时间',
+    noMembers:'暂无会员',
     adminPassword:'管理员密码',adminEmail:'管理员邮箱',enterAdmin:'登录',
     wrongPassword:'邮箱或密码错误。',adminOnly:'仅限管理员访问',
     demoPass:'',
@@ -155,16 +334,69 @@ noMembers:'暂无会员',
     saveCredentials:'保存',credentialsSaved:'凭据已更新！',
     errorCurrentPassword:'当前密码不正确。',errorEmailRequired:'邮箱为必填项。',
     errorPassMismatch:'两次密码不一致。',errorPassShort:'密码至少需要8位字符。',
-errorFillAll:'请填写所有字段。',
-errorEmail:'请输入有效的邮箱地址。',
-errorPassLen:'密码至少需要8位字符。',
-@@ -355,9 +370,17 @@
-noReferrers:'尚無推薦人 — 請先新增。',
-memberName:'會員姓名',referrer:'推薦人',regDate:'註冊時間',
-noMembers:'尚無會員',
-    adminPassword:'管理員密碼',enterAdmin:'進入後台',
-    wrongPassword:'密碼錯誤。',adminOnly:'僅限管理員存取',
-    demoPass:'示範密碼：admin123',
+    errorFillAll:'请填写所有字段。',
+    errorEmail:'请输入有效的邮箱地址。',
+    errorPassLen:'密码至少需要8位字符。',
+    errorPassMatch:'两次密码不一致。',
+    errorEmailTaken:'该邮箱已注册。',
+    errorInvalidCode:'请输入有效的推荐码。',
+    errorNamePrice:'商品名称和价格为必填项。',
+    errorCodeExists:'该推荐码已存在，请换一个。',
+    errorDupCode:'该推荐码已被其他推荐人使用。',
+    errorDeleteReferrer:'无法删除：该推荐人名下有会员，请先停用。',
+    orderDetails:'订单明细',payTo2:'收款方',
+    inactive2:'停用',active2:'活跃',
+    uploadImg:'点击上传商品图片（JPG/PNG）',
+    uploadImgNote:'不上传则使用 Emoji 图标',
+    replaceImg:'点击更换图片',removeImg:'移除图片',
+  },
+  zht:{
+    shop:'商店',admin:'管理後台',signIn:'登入',register:'註冊',
+    cart:'購物車',myAccount:'我的帳戶',logout:'登出',
+    heroTitle:'源自自然的美味',heroSub:'精選食品與飲品，直達您的門口',
+    shopNow:'立即選購',registerWithCode:'持推薦碼註冊 →',
+    allCats:'全部',pantry:'食品櫃',drinks:'飲品',snacks:'零食',fresh:'新鮮',
+    addToCart:'加入',noCatProds:'該分類暫無商品',
+    cartTitle:'購物車',cartEmpty:'購物車是空的',subtotal:'小計',
+    fee:'手續費',feeRate:'1.5%',total:'應付總額',checkout:'前往結帳 →',
+    referralCode:'推薦碼',referralCodePlaceholder:'例如：CHEN-R1',
+    validCode:'有效推薦碼 · 推薦人：',invalidCode:'推薦碼無效或已停用',
+    firstName:'姓',lastName:'名',email:'電子郵件',
+    password:'密碼',confirmPassword:'確認密碼',createAccount:'建立帳戶',
+    alreadyHave:'已有帳戶？',signInHere:'立即登入',
+    noAccount:'還沒有帳戶？',registerHere:'持推薦碼註冊',
+    welcomeBack:'歡迎回到 Harvest',signInBtn:'登入',
+    refBy:'推薦人',joined:'註冊時間',orders:'訂單數量',
+    saveChanges:'儲存變更',backToShop:'← 返回商店',
+    orderSummary:'確認訂單',paymentMethod:'選擇付款方式',
+    alipayPay:'支付寶掃碼付款',wechatPay:'微信掃碼付款',
+    payTo:'掃碼付款給',amount:'實付金額',
+    noQr:'推薦人尚未上傳收款碼，請聯繫',noQrSuffix:'。',
+    confirmPaid:'我已完成付款 ✓',thankYou:'感謝您的訂單！',
+    thankYouSub:'請將付款截圖傳送給推薦人確認，核實後將安排出貨。',
+    backToShopBtn:'返回商店',
+    noteInstructions:'請在付款備註中填寫：',
+    screenshotNote:'付款後截圖傳給推薦人確認。',
+    adminPanel:'管理後台',productsTab:'商品管理',referrersTab:'推薦人管理',
+    addReferrer:'新增推薦人',membersTab:'會員列表',
+    activeProducts:'上架商品',activeReferrers:'活躍推薦人',
+    registeredMembers:'註冊會員',feeRateLabel:'手續費率',
+    addProduct:'+ 新增商品',addProductTitle:'新增商品',
+    productName:'商品名稱 *',emojiIcon:'Emoji 圖示',
+    description:'商品描述',usdPrice:'美元價格 (USD) *',category:'分類',
+    tagLabel:'標籤',status:'狀態',active:'上架',inactive:'下架',
+    saveProduct:'儲存商品',cancel:'取消',edit:'編輯',
+    deactivate:'下架',activate:'上架',delete:'刪除',
+    saved:'已儲存！',productAdded:'商品已新增！',
+    referrerName:'姓名 *',iMemberNo:'伊環球會員號碼',address:'地址',
+    country:'國家',phone:'電話號碼',referralCodeLabel:'推薦碼 *',
+    note:'備註',saveReferrer:'儲存推薦人',random:'隨機',
+    alipayQr:'支付寶收款碼',wechatQr:'微信收款碼',
+    uploadQr:'點擊上傳',replaceQr:'已上傳，點擊更換',
+    removeQr:'移除',qrNote:'客戶結帳時掃碼付款。',
+    noReferrers:'尚無推薦人 — 請先新增。',
+    memberName:'會員姓名',referrer:'推薦人',regDate:'註冊時間',
+    noMembers:'尚無會員',
     adminPassword:'管理員密碼',adminEmail:'管理員信箱',enterAdmin:'登入',
     wrongPassword:'信箱或密碼錯誤。',adminOnly:'僅限管理員存取',
     demoPass:'',
@@ -176,131 +408,189 @@ noMembers:'尚無會員',
     saveCredentials:'儲存',credentialsSaved:'憑據已更新！',
     errorCurrentPassword:'目前密碼不正確。',errorEmailRequired:'信箱為必填項。',
     errorPassMismatch:'兩次密碼不一致。',errorPassShort:'密碼至少需要8個字元。',
-errorFillAll:'請填寫所有欄位。',
-errorEmail:'請輸入有效的電子郵件地址。',
-errorPassLen:'密碼至少需要8個字元。',
-@@ -376,9 +399,9 @@
-}
+    errorFillAll:'請填寫所有欄位。',
+    errorEmail:'請輸入有效的電子郵件地址。',
+    errorPassLen:'密碼至少需要8個字元。',
+    errorPassMatch:'兩次密碼不一致。',
+    errorEmailTaken:'該電子郵件已被註冊。',
+    errorInvalidCode:'請輸入有效的推薦碼。',
+    errorNamePrice:'商品名稱和價格為必填項。',
+    errorCodeExists:'該推薦碼已存在，請換一個。',
+    errorDupCode:'該推薦碼已被其他推薦人使用。',
+    errorDeleteReferrer:'無法刪除：該推薦人名下有會員，請先停用。',
+    orderDetails:'訂單明細',payTo2:'收款方',
+    inactive2:'停用',active2:'活躍',
+    uploadImg:'點擊上傳商品圖片（JPG/PNG）',
+    uploadImgNote:'不上傳則使用 Emoji 圖示',
+    replaceImg:'點擊更換圖片',removeImg:'移除圖片',
+  }
 };
 function t(k){return (T[lang]&&T[lang][k])||T.en[k]||k;}
- 
 
 const CATS_KEY={all:'allCats',pantry:'pantry',drinks:'drinks',snacks:'snacks',fresh:'fresh'};
- 
 
 const DEFAULT_PRODS=[
-{id:'p1',name_en:'Wildflower Honey',name_zh:'野花蜂蜜',desc_en:'Raw & unfiltered, 350g',desc_zh:'原味未过滤 350g',usdPrice:12.50,icon:'🍯',tag_en:'Organic',tag_zh:'有机',category:'pantry',img:'',active:true},
-{id:'p2',name_en:'Cold Brew Coffee',name_zh:'冷萃咖啡',desc_en:'Single origin, 500ml',desc_zh:'单一产地 500ml',usdPrice:8.00,icon:'☕',tag_en:'',tag_zh:'',category:'drinks',img:'',active:true},
-@@ -387,29 +410,29 @@
-{id:'p5',name_en:'Dark Chocolate',name_zh:'黑巧克力',desc_en:'75% cacao, 100g',desc_zh:'75%可可 100g',usdPrice:5.00,icon:'🍫',tag_en:'',tag_zh:'',category:'snacks',img:'',active:true},
-{id:'p6',name_en:'Extra Virgin Olive Oil',name_zh:'特级橄榄油',desc_en:'Cold pressed, 500ml',desc_zh:'冷压初榨 500ml',usdPrice:16.00,icon:'🫒',tag_en:'',tag_zh:'',category:'pantry',img:'',active:true},
+  {id:'p1',name_en:'Wildflower Honey',name_zh:'野花蜂蜜',desc_en:'Raw & unfiltered, 350g',desc_zh:'原味未过滤 350g',usdPrice:12.50,icon:'🍯',tag_en:'Organic',tag_zh:'有机',category:'pantry',img:'',active:true},
+  {id:'p2',name_en:'Cold Brew Coffee',name_zh:'冷萃咖啡',desc_en:'Single origin, 500ml',desc_zh:'单一产地 500ml',usdPrice:8.00,icon:'☕',tag_en:'',tag_zh:'',category:'drinks',img:'',active:true},
+  {id:'p3',name_en:'Almond Butter',name_zh:'杏仁黄油',desc_en:'Stone-ground roasted, 250g',desc_zh:'石磨烘焙 250g',usdPrice:10.00,icon:'🥜',tag_en:'Vegan',tag_zh:'纯素',category:'pantry',img:'',active:true},
+  {id:'p4',name_en:'Mixed Berry Jam',name_zh:'混合果酱',desc_en:'No added sugar, 300g',desc_zh:'无添加糖 300g',usdPrice:7.50,icon:'🫐',tag_en:'Organic',tag_zh:'有机',category:'pantry',img:'',active:true},
+  {id:'p5',name_en:'Dark Chocolate',name_zh:'黑巧克力',desc_en:'75% cacao, 100g',desc_zh:'75%可可 100g',usdPrice:5.00,icon:'🍫',tag_en:'',tag_zh:'',category:'snacks',img:'',active:true},
+  {id:'p6',name_en:'Extra Virgin Olive Oil',name_zh:'特级橄榄油',desc_en:'Cold pressed, 500ml',desc_zh:'冷压初榨 500ml',usdPrice:16.00,icon:'🫒',tag_en:'',tag_zh:'',category:'pantry',img:'',active:true},
 ];
- 
 
 let db={
-products:[...DEFAULT_PRODS],
-referrers:[
-{id:'r1',name:'陈志远',address:'广州市天河区',country:'中国',phone:'138-0001-0001',iMemberNo:'IH-10001',email:'chen@example.com',code:'CHEN-R1',note:'South China region',active:true,alipayQr:'',wechatQr:''},
-{id:'r2',name:'Lin Xiaoyan',address:'Pudong, Shanghai',country:'China',phone:'139-0002-0002',iMemberNo:'IH-10002',email:'lin@example.com',code:'LIN-R2',note:'Online channel',active:true,alipayQr:'',wechatQr:''},
-],
-  users:[],cur:null,adm:false
+  products:[...DEFAULT_PRODS],
+  referrers:[
+    {id:'r1',name:'陈志远',address:'广州市天河区',country:'中国',phone:'138-0001-0001',iMemberNo:'IH-10001',email:'chen@example.com',code:'CHEN-R1',note:'South China region',active:true,alipayQr:'',wechatQr:''},
+    {id:'r2',name:'Lin Xiaoyan',address:'Pudong, Shanghai',country:'China',phone:'139-0002-0002',iMemberNo:'IH-10002',email:'lin@example.com',code:'LIN-R2',note:'Online channel',active:true,alipayQr:'',wechatQr:''},
+  ],
   users:[],cur:null,adm:false,adminEmail:'',adminPassword:''
 };
 try{const s=localStorage.getItem('harvest_shop');if(s){const p=JSON.parse(s);db={...db,...p};if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
 function sv(){try{db.feeRate=FEE_RATE;localStorage.setItem('harvest_shop',JSON.stringify(db));}catch(e){}}
- 
 
 function pName(p){return (lang==='zh'||lang==='zht')?(p.name_zh||p.name_en||''):(p.name_en||p.name_zh||'');}
 function pDesc(p){return (lang==='zh'||lang==='zht')?(p.desc_zh||p.desc_en||''):(p.desc_en||p.desc_zh||'');}
 function pTag(p){return (lang==='zh'||lang==='zht')?(p.tag_zh||p.tag_en||''):(p.tag_en||p.tag_zh||'');}
- 
 
 let cart=[],activeCat='all',editingRefId=null,editingProdId=null;
- 
 
 function cny(usd){return rate?'¥'+(usd*rate).toFixed(2):'¥—';}
 function cnyN(usd){return rate?parseFloat((usd*rate).toFixed(2)):0;}
 function calcFee(s){return parseFloat((s*FEE_RATE).toFixed(2));}
 function calcTotal(s){return parseFloat((s+calcFee(s)).toFixed(2));}
- 
 
 function setLang(l){
-lang=l;
-document.getElementById('lb-en').classList.toggle('on',l==='en');
-@@ -419,7 +442,7 @@
-document.getElementById('nav-admin').textContent=t('admin');
-rNav();render();
+  lang=l;
+  document.getElementById('lb-en').classList.toggle('on',l==='en');
+  document.getElementById('lb-zh').classList.toggle('on',l==='zh');
+  document.getElementById('lb-zht').classList.toggle('on',l==='zht');
+  const labels={en:'EN',zh:'简体',zht:'繁體'};
+  const lbl=document.getElementById('lang-label');if(lbl)lbl.textContent=labels[l]||'EN';
+  document.getElementById('nav-shop').textContent=t('shop');
+  document.getElementById('nav-admin').textContent=t('admin');
+  rNav();render();
 }
- 
+function toggleLangDd(e){e.stopPropagation();document.getElementById('lang-dd-menu').classList.toggle('open');}
+function closeLangDd(){document.getElementById('lang-dd-menu').classList.remove('open');}
+document.addEventListener('click',function(e){const dd=document.getElementById('lang-dd');if(dd&&!dd.contains(e.target))closeLangDd();});
 
 async function fetchRate(){
-const dot=document.getElementById('rdot'),lbl=document.getElementById('rlbl');
-try{
-@@ -438,12 +461,12 @@
-}
+  const dot=document.getElementById('rdot'),lbl=document.getElementById('rlbl');
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD');
+    const d=await r.json();
+    if(d.result==='success'&&d.rates?.CNY){
+      rate=d.rates.CNY;
+      const ts=new Date(d.time_last_update_utc).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',month:'numeric',day:'numeric'});
+      if(dot){dot.classList.remove('loading');dot.className='rate-dot live';}
+      if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4)+' · '+ts;
+      document.querySelectorAll('[data-usd]').forEach(el=>el.textContent=cny(parseFloat(el.dataset.usd)));
+    }else throw 0;
+  }catch(e){
+    try{const r2=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');const d2=await r2.json();rate=d2.usd.cny;if(dot)dot.classList.remove('loading');if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4);document.querySelectorAll('[data-usd]').forEach(el=>el.textContent=cny(parseFloat(el.dataset.usd)));}
+    catch(e2){rate=7.25;if(dot)dot.classList.remove('loading');if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4)+' (ref.)';}
+  }
 }
 fetchRate();setInterval(fetchRate,3600000);
- 
 
 function ini(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 function refByCode(c){return db.referrers.find(r=>r.code===c.toUpperCase()&&r.active);}
 function refById(id){return db.referrers.find(r=>r.id===id);}
 function membersByRef(rid){return db.users.filter(u=>u.referrerId===rid);}
- 
 
 function openCart(){document.getElementById('cart-overlay').style.display='block';document.getElementById('cart-drawer').style.display='block';renderCartDrawer();}
 function closeCart(){document.getElementById('cart-overlay').style.display='none';document.getElementById('cart-drawer').style.display='none';}
 function tCart(){const d=document.getElementById('cart-drawer');if(d.style.display==='none'||!d.style.display){openCart();}else{closeCart();}}
-@@ -457,20 +480,20 @@
-   ${cart.length>0?`<div style="margin-top:10px;font-size:13px"><div style="display:flex;justify-content:space-between;padding:5px 0;color:var(--color-text-secondary)"><span>${t('subtotal')}</span><span>¥${subCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;color:#854F0B"><span>${t('fee')} <span style="background:#FAEEDA;color:#854F0B;border-radius:999px;font-size:11px;padding:1px 6px">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</span></span><span>¥${feeCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 0;border-top:.5px solid var(--color-border-tertiary);margin-top:4px"><span style="font-size:14px;font-weight:500">${t('total')}</span><div style="text-align:right"><div style="font-size:16px;font-weight:500">¥${totalCny.toFixed(2)}</div><div style="font-size:11px;color:var(--color-text-tertiary)">$${totUsd.toFixed(2)} USD</div></div></div></div><button class="btn p" style="width:100%;justify-content:center;margin-top:12px;padding:10px" onclick="closeCart();go('checkout')">${t('checkout')}</button>`:''}`;
+function renderCartDrawer(){
+  const drawer=document.getElementById('cart-drawer');if(drawer.style.display==='none')return;
+  const totUsd=cart.reduce((a,i)=>a+i.usdPrice*i.qty,0);
+  const subCny=cnyN(totUsd),feeCny=calcFee(subCny),totalCny=calcTotal(subCny);
+  drawer.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem"><span style="font-size:15px;font-weight:500">${t('cartTitle')}</span><button onclick="closeCart()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--color-text-secondary);line-height:1;padding:0">×</button></div>
+    ${cart.length===0?`<div style="text-align:center;color:var(--color-text-secondary);padding:2rem;font-size:13px">${t('cartEmpty')}</div>`:''}
+    ${cart.map(i=>`<div style="display:flex;align-items:center;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary);gap:8px"><div style="width:32px;height:32px;border-radius:6px;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden">${i.img?`<img src="${i.img}" style="width:100%;height:100%;object-fit:cover">`:(i.icon||'📦')}</div><span style="flex:1;font-size:13px">${pName(i)}</span><div style="display:flex;align-items:center;gap:6px"><button onclick="changeQty('${i.id}',-1)" style="width:22px;height:22px;border-radius:50%;border:.5px solid var(--color-border-secondary);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">−</button><span style="font-size:13px;min-width:16px;text-align:center">${i.qty}</span><button onclick="changeQty('${i.id}',1)" style="width:22px;height:22px;border-radius:50%;border:.5px solid var(--color-border-secondary);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button></div><div style="text-align:right;min-width:60px"><div style="font-size:13px;font-weight:500">${cny(i.usdPrice*i.qty)}</div><div style="font-size:11px;color:var(--color-text-tertiary)">$${(i.usdPrice*i.qty).toFixed(2)}</div></div></div>`).join('')}
+    ${cart.length>0?`<div style="margin-top:10px;font-size:13px"><div style="display:flex;justify-content:space-between;padding:5px 0;color:var(--color-text-secondary)"><span>${t('subtotal')}</span><span>¥${subCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;color:#854F0B"><span>${t('fee')} <span style="background:#FAEEDA;color:#854F0B;border-radius:999px;font-size:11px;padding:1px 6px">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</span></span><span>¥${feeCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 0;border-top:.5px solid var(--color-border-tertiary);margin-top:4px"><span style="font-size:14px;font-weight:500">${t('total')}</span><div style="text-align:right"><div style="font-size:16px;font-weight:500">¥${totalCny.toFixed(2)}</div><div style="font-size:11px;color:var(--color-text-tertiary)">$${totUsd.toFixed(2)} USD</div></div></div></div><button class="btn p" style="width:100%;justify-content:center;margin-top:12px;padding:10px" onclick="closeCart();go('checkout')">${t('checkout')}</button>`:''}`;
 }
 function changeQty(id,delta){const ex=cart.find(x=>x.id===id);if(!ex)return;ex.qty+=delta;if(ex.qty<=0)cart=cart.filter(x=>x.id!==id);rNav();renderCartDrawer();}
- 
 
 function rNav(){
-const nr=document.getElementById('nr');if(!nr)return;
-if(db.cur){const c=cart.reduce((s,i)=>s+i.qty,0);nr.innerHTML=`<button class="btn" onclick="tCart()"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>${t('cart')} <span class="bdg g" id="cart-count">${c}</span></button><div class="ava" onclick="go('acc')">${ini(db.cur.name)}</div>`;}
-else{nr.innerHTML=`<button class="btn" onclick="go('login')">${t('signIn')}</button><button class="btn p" onclick="go('reg')">${t('register')}</button>`;}
+  const nr=document.getElementById('nr');if(!nr)return;
+  if(db.cur){const c=cart.reduce((s,i)=>s+i.qty,0);nr.innerHTML=`<button class="btn" onclick="tCart()"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>${t('cart')} <span class="bdg g" id="cart-count">${c}</span></button><div class="ava" onclick="go('acc')">${ini(db.cur.name)}</div>`;}
+  else{nr.innerHTML=`<button class="nav-link-btn" onclick="go('reg')">${t('register')}</button><button class="nav-link-btn" onclick="go('login')">${t('signIn')}</button>`;}
 }
- 
 
 let vw='shop';
 function go(v){vw=v;closeCart();editingRefId=null;editingProdId=null;rNav();render();}
 function render(){
-const r=document.getElementById('root');
-if(vw==='shop')rShop(r);else if(vw==='checkout')rCheckout(r);else if(vw==='reg')rReg(r);else if(vw==='login')rLogin(r);else if(vw==='acc')rAcc(r);else if(vw==='admin-login')rAdmLogin(r);else if(vw==='admin')rAdm(r);
+  const r=document.getElementById('root');
+  if(vw==='shop')rShop(r);else if(vw==='checkout')rCheckout(r);else if(vw==='reg')rReg(r);else if(vw==='login')rLogin(r);else if(vw==='acc')rAcc(r);else if(vw==='admin-login')rAdmLogin(r);else if(vw==='admin')rAdm(r);
 }
- 
 
 function rShop(r){
-r.innerHTML=`<div class="hero"><h1>${t('heroTitle')}</h1><p>${t('heroSub')}</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn p" onclick="document.getElementById('mp').scrollIntoView({behavior:'smooth'})">${t('shopNow')}</button>${!db.cur?`<button class="btn" onclick="go('reg')">${t('registerWithCode')}</button>`:''}</div></div>
- <div class="filters">${Object.entries(CATS_KEY).map(([val,key])=>`<button class="fpill ${activeCat===val?'on':''}" onclick="activeCat='${val}';rShopProducts()">${t(key)}</button>`).join('')}</div>
-@@ -490,7 +513,7 @@
-rNav();renderCartDrawer();
-const cnt=document.getElementById('cart-count');if(cnt){cnt.style.transform='scale(1.4)';setTimeout(()=>cnt.style.transform='',200);}
+  const heroImg=db.heroImage||'';
+  const heroClass=heroImg?'hero':'hero no-img';
+  const heroBg=heroImg?`<img class="hero-bg" src="${heroImg}" alt=""><div class="hero-overlay"></div>`:'';
+  r.innerHTML=`<div class="${heroClass}">${heroBg}<div class="hero-content"><h1>${t('heroTitle')}</h1><p>${t('heroSub')}</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn p" onclick="document.getElementById('mp').scrollIntoView({behavior:'smooth'})">${t('shopNow')}</button>${!db.cur?`<button class="btn" onclick="go('reg')">${t('registerWithCode')}</button>`:''}</div></div></div>
+  <div class="filters">${Object.entries(CATS_KEY).map(([val,key])=>`<button class="fpill ${activeCat===val?'on':''}" onclick="activeCat='${val}';rShopProducts()">${t(key)}</button>`).join('')}</div>
+  <div class="prods" id="mp"></div>`;
+  rShopProducts();
 }
- 
+function rShopProducts(){
+  const grid=document.getElementById('mp');if(!grid)return;
+  document.querySelectorAll('.fpill').forEach((b,i)=>{const val=Object.keys(CATS_KEY)[i];b.classList.toggle('on',val===activeCat);b.textContent=t(Object.values(CATS_KEY)[i]);});
+  const filtered=activeCat==='all'?db.products.filter(p=>p.active):db.products.filter(p=>p.active&&p.category===activeCat);
+  grid.innerHTML=filtered.length===0?`<div style="grid-column:1/-1;text-align:center;color:var(--color-text-secondary);padding:3rem;font-size:13px">${t('noCatProds')}</div>`:filtered.map(p=>`<div class="pc"><div class="pi">${p.img?`<img src="${p.img}">`:(p.icon||'📦')}</div><div class="pb">${pTag(p)?`<span class="tag">${pTag(p)}</span>`:''}<div class="pn">${pName(p)}</div><div class="pd">${pDesc(p)}</div><div class="pf"><div><div class="price-cny" data-usd="${p.usdPrice}">${cny(p.usdPrice)}</div><div class="price-usd">$${p.usdPrice.toFixed(2)} USD</div></div><button class="ab" onclick="addC('${p.id}')">${t('addToCart')}</button></div></div></div>`).join('');
+}
+function addC(id){
+  if(!db.cur){go('login');return;}
+  const p=db.products.find(x=>x.id===id&&x.active);if(!p)return;
+  const ex=cart.find(x=>x.id===id);if(ex)ex.qty++;else cart.push({...p,qty:1});
+  rNav();renderCartDrawer();
+  const cnt=document.getElementById('cart-count');if(cnt){cnt.style.transform='scale(1.4)';setTimeout(()=>cnt.style.transform='',200);}
+}
 
 function rCheckout(r){
-if(!db.cur){go('login');return;}if(!cart.length){go('shop');return;}
-const u=db.cur,ref=refById(u.referrerId);
-@@ -521,7 +544,7 @@
-sv();rNav();
-document.getElementById('root').innerHTML=`<div style="max-width:420px;margin:4rem auto;padding:0 1.5rem;text-align:center"><div style="font-size:44px;margin-bottom:1rem">🎉</div><div style="font-size:20px;font-weight:500;margin-bottom:8px">${t('thankYou')}</div><div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:1.5rem;line-height:1.7">${t('thankYouSub')}</div><div style="background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:16px;font-size:13px;margin-bottom:1.5rem"><div style="display:flex;justify-content:space-between;color:var(--color-text-secondary);margin-bottom:6px"><span>${t('subtotal')}</span><span>¥${(totalCny/(1+FEE_RATE)).toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;color:#854F0B;margin-bottom:8px;padding-bottom:8px;border-bottom:.5px solid var(--color-border-tertiary)"><span>${t('fee')} (1.5%)</span><span>¥${(totalCny-totalCny/(1+FEE_RATE)).toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;font-weight:500;font-size:15px"><span>${t('total')}</span><span>¥${totalCny.toFixed(2)}</span></div></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="go('shop')">${t('backToShopBtn')}</button></div>`;
+  if(!db.cur){go('login');return;}if(!cart.length){go('shop');return;}
+  const u=db.cur,ref=refById(u.referrerId);
+  const totUsd=cart.reduce((s,i)=>s+i.usdPrice*i.qty,0);
+  const subCny=cnyN(totUsd),feeCny=calcFee(subCny),totalCny=calcTotal(subCny);
+  r.innerHTML=`<div class="checkout-page"><div style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem"><button class="btn sm" onclick="go('shop')">←</button><span style="font-size:17px;font-weight:500">${t('orderSummary')}</span></div>
+    <div class="order-box"><div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">${t('orderDetails')}</div>${cart.map(i=>`<div class="orow sub"><span>${i.icon||'📦'} ${pName(i)} <span style="font-size:11px">×${i.qty}</span></span><span>${cny(i.usdPrice*i.qty)}</span></div>`).join('')}<div style="border-top:.5px solid var(--color-border-tertiary);margin:8px 0"></div><div class="orow sub"><span>${t('subtotal')}</span><span>¥${subCny.toFixed(2)}</span></div><div class="orow fee"><span style="display:flex;align-items:center;gap:6px">${t('fee')}<span style="background:#FAEEDA;color:#854F0B;border-radius:999px;font-size:11px;padding:1px 7px">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</span></span><span>¥${feeCny.toFixed(2)}</span></div><div style="border-top:.5px solid var(--color-border-secondary);margin:8px 0"></div><div class="orow total"><span>${t('total')}</span><div style="text-align:right"><div>¥${totalCny.toFixed(2)}</div><div style="font-size:11px;color:var(--color-text-tertiary);font-weight:400">1 USD = ¥${rate.toFixed(4)}</div></div></div></div>
+    ${ref?`<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 12c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${t('payTo2')}: <strong>${ref.name}</strong></div>`:''}
+    <div style="font-size:13px;font-weight:500;margin-bottom:10px">${t('paymentMethod')}</div>
+    ${!ref?.alipayQr&&!ref?.wechatQr?`<div class="m w">${t('noQr')} <strong>${ref?.name||''}</strong>${t('noQrSuffix')}</div>`:''}
+    ${ref?.alipayQr?`<button class="pay-btn pay-alipay" onclick="showQr('alipay',${totalCny},${subCny})"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="5" fill="white" fill-opacity=".25"/><path d="M4 7h16M4 12h8m-8 5h5" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M13 14.5s3.5 1.8 5.5 2.8" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>${t('alipayPay')}</button>`:''}
+    ${ref?.wechatQr?`<button class="pay-btn pay-wechat" onclick="showQr('wechat',${totalCny},${subCny})"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M8.5 10.5c3.5-4.5 11-3.5 11 1.2 0 2.8-2.8 4.5-5.5 3.3l-3.5 2.3 1.2-3C10 13.5 8.5 12.2 8.5 10.5z" fill="white"/><path d="M4.5 7.5c2.8-3.5 8-3 9.5.5C10.5 7 7.5 8.5 6.5 11c-1.5-.8-2.5-2-2-3.5z" fill="white" fill-opacity=".8"/></svg>${t('wechatPay')}</button>`:''}
+    <div id="qr-slot"></div><div class="m i" style="margin-top:1rem;font-size:12px">${t('screenshotNote')}</div></div>`;
 }
- 
+function showQr(method,totalCny,subCny){
+  const u=db.cur,ref=refById(u.referrerId);if(!ref)return;
+  const totUsd=cart.reduce((s,i)=>s+i.usdPrice*i.qty,0),feeCny=calcFee(subCny);
+  const qrSrc=method==='alipay'?ref.alipayQr:ref.wechatQr;
+  const color=method==='alipay'?'#1677FF':'#07C160';
+  const label=method==='alipay'?(lang==='zh'?'支付宝':'Alipay'):(lang==='zh'?'微信':'WeChat');
+  document.getElementById('qr-slot').innerHTML=`<div style="background:var(--color-background-primary);border:1.5px solid ${color};border-radius:var(--border-radius-lg);padding:1.5rem;text-align:center;margin-top:1rem"><div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:3px">${t('payTo')} (${label})</div><div style="font-size:16px;font-weight:500;margin-bottom:1rem">${ref.name}</div>${qrSrc?`<img src="${qrSrc}" style="width:180px;height:180px;object-fit:contain;border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);display:block;margin:0 auto">`:`<div style="width:180px;height:180px;border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-text-secondary)">No QR</div>`}<div style="margin-top:1.25rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 16px;text-align:left"><div style="display:flex;justify-content:space-between;font-size:13px;color:var(--color-text-secondary);padding-bottom:6px;margin-bottom:6px;border-bottom:.5px solid var(--color-border-tertiary)"><span>${t('subtotal')}</span><span>¥${subCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;font-size:13px;color:#854F0B;padding-bottom:6px;margin-bottom:8px;border-bottom:.5px solid var(--color-border-tertiary)"><span>${t('fee')} <span style="background:#FAEEDA;border-radius:999px;font-size:11px;padding:1px 6px">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</span></span><span>¥${feeCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:500">${t('amount')}</span><span style="font-size:26px;font-weight:500;color:${color}">¥${totalCny.toFixed(2)}</span></div></div><div style="font-size:12px;color:var(--color-text-secondary);margin-top:12px;line-height:1.7">${t('noteInstructions')} <strong>${u.name}</strong><br>${t('screenshotNote')}</div><button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:1rem" onclick="orderDone(${totalCny},${totUsd})">${t('confirmPaid')}</button></div>`;
+  document.getElementById('qr-slot').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function orderDone(totalCny,totUsd){
+  const u=db.cur;cart=[];
+  const idx=db.users.findIndex(x=>x.id===u.id);
+  if(idx>-1){db.users[idx].orders=(db.users[idx].orders||0)+1;db.cur=db.users[idx];}
+  sv();rNav();
+  document.getElementById('root').innerHTML=`<div style="max-width:420px;margin:4rem auto;padding:0 1.5rem;text-align:center"><div style="font-size:44px;margin-bottom:1rem">🎉</div><div style="font-size:20px;font-weight:500;margin-bottom:8px">${t('thankYou')}</div><div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:1.5rem;line-height:1.7">${t('thankYouSub')}</div><div style="background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:16px;font-size:13px;margin-bottom:1.5rem"><div style="display:flex;justify-content:space-between;color:var(--color-text-secondary);margin-bottom:6px"><span>${t('subtotal')}</span><span>¥${(totalCny/(1+FEE_RATE)).toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;color:#854F0B;margin-bottom:8px;padding-bottom:8px;border-bottom:.5px solid var(--color-border-tertiary)"><span>${t('fee')} (1.5%)</span><span>¥${(totalCny-totalCny/(1+FEE_RATE)).toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;font-weight:500;font-size:15px"><span>${t('total')}</span><span>¥${totalCny.toFixed(2)}</span></div></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="go('shop')">${t('backToShopBtn')}</button></div>`;
+}
 
 function rReg(r){
-r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('register')}</h2><div class="msub">${lang==='en'?'You need a referral code from an existing member to register.':(lang==='zht'?'您需要推薦人提供的推薦碼才能註冊。':'您需要推荐人提供的推荐码才能注册。')}</div><div id="rm"></div><div class="fl"><label>${t('referralCode')} <span style="color:#A32D2D">*</span></label><input type="text" id="rc" placeholder="${t('referralCodePlaceholder')}" style="text-transform:uppercase;font-family:var(--font-mono)" oninput="ckRC()"><div id="rch" style="font-size:12px;margin-top:5px;min-height:16px"></div></div><div id="rf" style="opacity:.4;pointer-events:none;transition:opacity .2s"><div class="dv"></div><div class="g2" style="margin-bottom:10px"><div><label style="display:block;font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">${t('firstName')}</label><input type="text" id="rfn"></div><div><label style="display:block;font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">${t('lastName')}</label><input type="text" id="rln"></div></div><div class="fl"><label>${t('email')}</label><input type="email" id="re"></div><div class="fl"><label>${t('password')}</label><input type="password" id="rp" oninput="ckS(this.value)"><div class="sb" id="sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="rp2"></div></div><button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:4px" onclick="doReg()">${t('createAccount')}</button><div class="sw">${t('alreadyHave')} <a onclick="go('login')">${t('signInHere')}</a></div></div></div>`;
+  r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('register')}</h2><div class="msub">${lang==='en'?'You need a referral code from an existing member to register.':(lang==='zht'?'您需要推薦人提供的推薦碼才能註冊。':'您需要推荐人提供的推荐码才能注册。')}</div><div id="rm"></div><div class="fl"><label>${t('referralCode')} <span style="color:#A32D2D">*</span></label><input type="text" id="rc" placeholder="${t('referralCodePlaceholder')}" style="text-transform:uppercase;font-family:var(--font-mono)" oninput="ckRC()"><div id="rch" style="font-size:12px;margin-top:5px;min-height:16px"></div></div><div id="rf" style="opacity:.4;pointer-events:none;transition:opacity .2s"><div class="dv"></div><div class="g2" style="margin-bottom:10px"><div><label style="display:block;font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">${t('firstName')}</label><input type="text" id="rfn"></div><div><label style="display:block;font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">${t('lastName')}</label><input type="text" id="rln"></div></div><div class="fl"><label>${t('email')}</label><input type="email" id="re"></div><div class="fl"><label>${t('password')}</label><input type="password" id="rp" oninput="ckS(this.value)"><div class="sb" id="sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="rp2"></div></div><button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:4px" onclick="doReg()">${t('createAccount')}</button><div class="sw">${t('alreadyHave')} <a onclick="go('login')">${t('signInHere')}</a></div></div></div>`;
 }
-@@ -533,33 +556,41 @@
+function ckRC(){const v=document.getElementById('rc').value.trim().toUpperCase(),h=document.getElementById('rch'),f=document.getElementById('rf');if(!v){h.textContent='';f.style.opacity='.4';f.style.pointerEvents='none';return;}const ref=refByCode(v);if(ref){h.style.color='#185FA5';h.innerHTML=`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:3px"><path d="M2 6l3 3 5-5" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>${t('validCode')} <strong>${ref.name}</strong>`;f.style.opacity='1';f.style.pointerEvents='auto';}else{h.style.color='#A32D2D';h.innerHTML=`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:3px"><path d="M3 3l6 6M9 3l-6 6" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round"/></svg>${t('invalidCode')}`;f.style.opacity='.4';f.style.pointerEvents='none';}}
+function ckS(pw){const b=document.getElementById('sb');if(!b)return;let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
+function doReg(){const code=document.getElementById('rc').value.trim().toUpperCase(),fn=document.getElementById('rfn').value.trim(),ln=document.getElementById('rln').value.trim(),em=document.getElementById('re').value.trim().toLowerCase(),pw=document.getElementById('rp').value,pw2=document.getElementById('rp2').value,msg=document.getElementById('rm');const ref=refByCode(code);if(!ref){msg.innerHTML=`<div class="m e">${t('errorInvalidCode')}</div>`;return;}if(!fn||!ln||!em||!pw||!pw2){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.innerHTML=`<div class="m e">${t('errorEmail')}</div>`;return;}if(pw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassLen')}</div>`;return;}if(pw!==pw2){msg.innerHTML=`<div class="m e">${t('errorPassMatch')}</div>`;return;}if(db.users.find(u=>u.email===em)){msg.innerHTML=`<div class="m e">${t('errorEmailTaken')}</div>`;return;}const u={id:'u'+Date.now(),name:fn+' '+ln,email:em,pass:pw,referrerId:ref.id,referrerName:ref.name,joined:new Date().toLocaleDateString(),orders:0};db.users.push(u);db.cur=u;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Account created! Welcome to Harvest.':(lang==='zht'?'帳戶建立成功！歡迎加入 Harvest。':'账户创建成功！欢迎加入 Harvest。')}</div>`;setTimeout(()=>go('shop'),900);}
+function rLogin(r){r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('signIn')}</h2><div class="msub">${t('welcomeBack')}</div><div id="lm"></div><div class="fl"><label>${t('email')}</label><input type="email" id="le"></div><div class="fl"><label>${t('password')}</label><input type="password" id="lp" onkeydown="if(event.key==='Enter')doLogin()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">${t('signInBtn')}</button><div class="sw">${t('noAccount')} <a onclick="go('reg')">${t('registerHere')}</a></div></div></div>`;}
+function doLogin(){const em=document.getElementById('le').value.trim().toLowerCase(),pw=document.getElementById('lp').value,msg=document.getElementById('lm');if(!em||!pw){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}const u=db.users.find(u=>u.email===em&&u.pass===pw);if(!u){msg.innerHTML=`<div class="m e">${lang==='en'?'Incorrect email or password.':(lang==='zht'?'電子郵件或密碼不正確。':'邮箱或密码不正确。')}</div>`;return;}db.cur=u;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Welcome back, '+u.name.split(' ')[0]+'!':(lang==='zht'?'歡迎回來，'+u.name.split(' ')[0]+'！':'欢迎回来，'+u.name.split(' ')[0]+'！')}</div>`;setTimeout(()=>go('shop'),700);}
 function rAcc(r){if(!db.cur){go('login');return;}const u=db.cur;r.innerHTML=`<div class="pg"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem"><div style="display:flex;align-items:center;gap:12px"><div class="ava" style="width:44px;height:44px;font-size:15px">${ini(u.name)}</div><div><div style="font-size:16px;font-weight:500">${u.name}</div><div style="font-size:12px;color:var(--color-text-secondary)">${u.email}</div></div></div><button class="btn sm d" onclick="doLO()">${t('logout')}</button></div><div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 12c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${t('refBy')}: <strong>${u.referrerName}</strong></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem"><div class="sc"><div class="sl">${t('joined')}</div><div style="font-size:13px;font-weight:500;margin-top:4px">${u.joined}</div></div><div class="sc"><div class="sl">${t('orders')}</div><div class="sv">${u.orders||0}</div></div></div><div class="dv"></div><div class="fl"><label>${lang==='en'?'Full Name':(lang==='zht'?'姓名':'姓名')}</label><input type="text" id="en" value="${u.name}" style="width:100%"></div><div class="fl"><label>${t('email')}</label><input type="email" id="ee" value="${u.email}" style="width:100%"></div><div id="em"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="saveA()">${t('saveChanges')}</button><div style="margin-top:10px;text-align:center"><a style="font-size:12px;color:var(--color-text-secondary);cursor:pointer;text-decoration:underline" onclick="go('shop')">${t('backToShop')}</a></div></div>`;}
 function saveA(){const n=document.getElementById('en').value.trim(),e=document.getElementById('ee').value.trim().toLowerCase(),msg=document.getElementById('em');if(!n||!e){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}db.cur.name=n;db.cur.email=e;const i=db.users.findIndex(u=>u.id===db.cur.id);if(i>-1)db.users[i]=db.cur;sv();rNav();msg.innerHTML=`<div class="m s">${t('saved')}</div>`;}
 function doLO(){db.cur=null;sv();cart=[];go('shop');}
- 
-function rAdmLogin(r){r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('adminPanel')}</h2><div class="msub">${t('adminOnly')}<br><span style="font-size:11px;color:var(--color-text-tertiary)">${t('demoPass')}</span></div><div id="alm"></div><div class="fl"><label>${t('adminPassword')}</label><input type="password" id="ap" onkeydown="if(event.key==='Enter')doAdm()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doAdm()">${t('enterAdmin')}</button><div class="sw"><a onclick="go('shop')">${t('backToShop')}</a></div></div></div>`;}
-function doAdm(){if(document.getElementById('ap').value===APW){db.adm=true;sv();go('admin');}else document.getElementById('alm').innerHTML=`<div class="m e">${t('wrongPassword')}</div>`;}
- 
 
 function rAdmLogin(r){
   if(!db.adminPassword){
@@ -315,23 +605,18 @@ function doAdm(){const em=document.getElementById('a-email').value.trim().toLowe
 
 let atab='products';
 function rAdm(r){
-if(!db.adm){rAdmLogin(r);return;}
-r.innerHTML=`<div class="pgw"><div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:1rem;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:1.5rem"><div><div style="font-size:18px;font-weight:500">${t('adminPanel')}</div></div><button class="btn sm d" onclick="db.adm=false;sv();go('shop')">${t('logout')}</button></div>
-   <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem"><div class="sc"><div class="sl">${t('activeProducts')}</div><div class="sv">${db.products.filter(p=>p.active).length}<span style="font-size:13px;color:var(--color-text-secondary)">/${db.products.length}</span></div></div><div class="sc"><div class="sl">${t('activeReferrers')}</div><div class="sv">${db.referrers.filter(r=>r.active).length}<span style="font-size:13px;color:var(--color-text-secondary)">/${db.referrers.length}</span></div></div><div class="sc"><div class="sl">${t('registeredMembers')}</div><div class="sv">${db.users.length}</div></div><div class="sc" style="cursor:pointer" onclick="toggleFeeEdit()" title="Click to edit"><div style="display:flex;align-items:center;justify-content:space-between"><div class="sl">${t('feeRateLabel')}</div><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#a3a199" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l2 2-7 7H3v-2L10 2z"/></svg></div><div id="fee-display" style="font-size:18px;font-weight:500;margin-top:4px;color:#854F0B">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</div><div id="fee-edit" style="display:none;margin-top:6px"><div style="display:flex;gap:6px;align-items:center"><input type="number" id="fee-input" value="${(FEE_RATE*100).toFixed(4)}" min="0" max="100" step="0.01" style="width:70px;padding:4px 7px;font-size:13px" onclick="event.stopPropagation()"><span style="font-size:13px;color:var(--color-text-secondary)">%</span><button class="btn p sm" onclick="event.stopPropagation();saveFeeRate()">${lang==='en'?'Save':(lang==='zht'?'儲存':'保存')}</button></div><div id="fee-msg" style="margin-top:4px"></div></div></div></div>
-    <div class="tabs"><div class="tab ${atab==='products'?'on':''}" onclick="atab='products';rAdm(document.getElementById('root'))">${t('productsTab')}</div><div class="tab ${atab==='referrers'?'on':''}" onclick="atab='referrers';rAdm(document.getElementById('root'))">${t('referrersTab')}</div><div class="tab ${atab==='addref'?'on':''}" onclick="atab='addref';rAdm(document.getElementById('root'))">${t('addReferrer')}</div><div class="tab ${atab==='members'?'on':''}" onclick="atab='members';rAdm(document.getElementById('root'))">${t('membersTab')}</div></div>
+  if(!db.adm){rAdmLogin(r);return;}
+  r.innerHTML=`<div class="pgw"><div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:1rem;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:1.5rem"><div><div style="font-size:18px;font-weight:500">${t('adminPanel')}</div></div><button class="btn sm d" onclick="db.adm=false;sv();go('shop')">${t('logout')}</button></div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem"><div class="sc"><div class="sl">${t('activeProducts')}</div><div class="sv">${db.products.filter(p=>p.active).length}<span style="font-size:13px;color:var(--color-text-secondary)">/${db.products.length}</span></div></div><div class="sc"><div class="sl">${t('activeReferrers')}</div><div class="sv">${db.referrers.filter(r=>r.active).length}<span style="font-size:13px;color:var(--color-text-secondary)">/${db.referrers.length}</span></div></div><div class="sc"><div class="sl">${t('registeredMembers')}</div><div class="sv">${db.users.length}</div></div><div class="sc" style="cursor:pointer" onclick="toggleFeeEdit()" title="Click to edit"><div style="display:flex;align-items:center;justify-content:space-between"><div class="sl">${t('feeRateLabel')}</div><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#a3a199" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l2 2-7 7H3v-2L10 2z"/></svg></div><div id="fee-display" style="font-size:18px;font-weight:500;margin-top:4px;color:#854F0B">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</div><div id="fee-edit" style="display:none;margin-top:6px"><div style="display:flex;gap:6px;align-items:center"><input type="number" id="fee-input" value="${(FEE_RATE*100).toFixed(4)}" min="0" max="100" step="0.01" style="width:70px;padding:4px 7px;font-size:13px" onclick="event.stopPropagation()"><span style="font-size:13px;color:var(--color-text-secondary)">%</span><button class="btn p sm" onclick="event.stopPropagation();saveFeeRate()">${lang==='en'?'Save':(lang==='zht'?'儲存':'保存')}</button></div><div id="fee-msg" style="margin-top:4px"></div></div></div></div>
     <div class="tabs"><div class="tab ${atab==='products'?'on':''}" onclick="atab='products';rAdm(document.getElementById('root'))">${t('productsTab')}</div><div class="tab ${atab==='referrers'?'on':''}" onclick="atab='referrers';rAdm(document.getElementById('root'))">${t('referrersTab')}</div><div class="tab ${atab==='addref'?'on':''}" onclick="atab='addref';rAdm(document.getElementById('root'))">${t('addReferrer')}</div><div class="tab ${atab==='members'?'on':''}" onclick="atab='members';rAdm(document.getElementById('root'))">${t('membersTab')}</div><div class="tab ${atab==='settings'?'on':''}" onclick="atab='settings';rAdm(document.getElementById('root'))">${t('settingsTab')}</div></div>
-   <div id="atc"></div></div>`;
-const tc=document.getElementById('atc');
-  if(atab==='products')rAdmProds(tc);else if(atab==='referrers')rAdmRefs(tc);else if(atab==='addref')rAdmAddRef(tc);else rAdmMem(tc);
+    <div id="atc"></div></div>`;
+  const tc=document.getElementById('atc');
   if(atab==='products')rAdmProds(tc);else if(atab==='referrers')rAdmRefs(tc);else if(atab==='addref')rAdmAddRef(tc);else if(atab==='members')rAdmMem(tc);else rAdmSettings(tc);
 }
- 
 
 function rAdmProds(tc){tc.innerHTML=`<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><span style="font-size:13px;color:var(--color-text-secondary)">${db.products.filter(p=>p.active).length} ${t('active')} / ${db.products.length}</span><button class="btn p sm" onclick="startAddProd()">${t('addProduct')}</button></div><div id="prod-add-slot"></div>${db.products.map(p=>`<div class="prod-row"><div class="prod-thumb">${p.img?`<img src="${p.img}">`:(p.icon||'📦')}</div><div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">${pName(p)}${!p.active?`<span style="background:#FCEBEB;color:#A32D2D;border-radius:999px;font-size:11px;padding:1px 7px;margin-left:4px">${t('inactive')}</span>`:''}</div><div style="font-size:12px;color:var(--color-text-secondary)">${pDesc(p)} · <span class="code" style="font-size:11px">$${p.usdPrice.toFixed(2)}</span></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn sm" onclick="startEditProd('${p.id}')">${t('edit')}</button><button class="btn sm" onclick="toggleProd('${p.id}')">${p.active?t('deactivate'):t('activate')}</button><button class="btn sm d" onclick="deleteProd('${p.id}')">${t('delete')}</button></div></div><div id="prod-edit-${p.id}"></div>`).join('')}</div>`;}
- 
 
 function prodFormHtml(p,pfx){const v=f=>p?p[f]??'':'';const imgVal=window[pfx+'img']!==undefined?window[pfx+'img']:(p?.img||'');return `<div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('productName')} (EN)</label><input type="text" id="${pfx}name_en" value="${p?.name_en||''}" placeholder="e.g. Wildflower Honey"></div><div class="fl"><label>${t('productName')} (中文)</label><input type="text" id="${pfx}name_zh" value="${p?.name_zh||''}" placeholder="例如：野花蜂蜜"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('description')} (EN)</label><textarea id="${pfx}desc_en" placeholder="e.g. Raw & unfiltered">${p?.desc_en||''}</textarea></div><div class="fl"><label>${t('description')} (中文)</label><textarea id="${pfx}desc_zh" placeholder="例如：原味未过滤">${p?.desc_zh||''}</textarea></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('tagLabel')} (EN)</label><input type="text" id="${pfx}tag_en" value="${p?.tag_en||''}" placeholder="e.g. Organic"></div><div class="fl"><label>${t('tagLabel')} (中文)</label><input type="text" id="${pfx}tag_zh" value="${p?.tag_zh||''}" placeholder="例如：有机"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('emojiIcon')}</label><input type="text" id="${pfx}icon" value="${v('icon')}" placeholder="🍯"></div><div class="fl"><label>${t('usdPrice')}</label><input type="number" id="${pfx}usdPrice" value="${v('usdPrice')}" placeholder="0.00" step="0.01" min="0"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('category')}</label><select id="${pfx}category">${Object.entries(CATS_KEY).filter(([v])=>v!=='all').map(([val,key])=>`<option value="${val}" ${v('category')===val?'selected':''}>${t(key)}</option>`).join('')}</select></div><div class="fl"><label>${t('status')}</label><select id="${pfx}active"><option value="1" ${(!p||p.active)?'selected':''}>${t('active')}</option><option value="0" ${(p&&!p.active)?'selected':''}>${t('inactive')}</option></select></div></div><div class="fl"><label>${lang==='en'?'Product Image (optional)':(lang==='zht'?'商品圖片（選填）':'商品图片（可选）')}</label><label class="img-upload-box" style="display:block;cursor:pointer">${imgVal?`<img src="${imgVal}" style="height:60px;object-fit:cover;border-radius:var(--border-radius-md);display:block;margin:0 auto 6px"><div style="font-size:11px;color:var(--color-text-secondary)">${t('replaceImg')}</div>`:`<div style="font-size:12px;color:var(--color-text-secondary)">${t('uploadImg')}</div>`}<input type="file" accept="image/*" style="display:none" onchange="handleProdImg(event,'${pfx}')"></label>${imgVal?`<button class="btn sm d" style="margin-top:4px" onclick="window['${pfx}img']='';rAdmProds(document.getElementById('atc'))">${t('removeImg')}</button>`:''}</div>`;}
- 
 
 function handleProdImg(e,pfx){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{window[pfx+'img']=ev.target.result;rAdmProds(document.getElementById('atc'));};rd.readAsDataURL(f);}
 function startAddProd(){editingProdId='new';rAdmProds(document.getElementById('atc'));const slot=document.getElementById('prod-add-slot');slot.innerHTML=`<div class="prod-edit-form"><div style="font-size:14px;font-weight:500;margin-bottom:12px">${t('addProductTitle')}</div><div id="add-prod-msg"></div>${prodFormHtml(null,'np-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveNewProd()">${t('saveProduct')}</button><button class="btn sm" onclick="editingProdId=null;rAdmProds(document.getElementById('atc'))">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}
@@ -340,25 +625,44 @@ function startEditProd(id){editingProdId=editingProdId===id?null:id;rAdmProds(do
 function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),desc_en=document.getElementById(pfx+'desc_en').value.trim(),desc_zh=document.getElementById(pfx+'desc_zh').value.trim(),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),category=document.getElementById(pfx+'category').value,active=document.getElementById(pfx+'active').value==='1',img=window[pfx+'img']!==undefined?window[pfx+'img']:(db.products.find(x=>x.id===id)?.img||'');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,desc_en,desc_zh,tag_en,tag_zh,icon,usdPrice,category,active,img});window[pfx+'img']=undefined;sv();editingProdId=null;rAdmProds(document.getElementById('atc'));}
 function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.active=!p.active;sv();rAdmProds(document.getElementById('atc'));}
 function deleteProd(id){db.products=db.products.filter(x=>x.id!==id);sv();rAdmProds(document.getElementById('atc'));}
- 
 
 function qrUploadHtml(pfx,type,existing){const label=t(type==='alipay'?'alipayQr':'wechatQr');const icon=type==='alipay'?`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#1677FF"/><path d="M4 7h16M4 12h8m-8 5h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M14 14s3 1.5 5 2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>`:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#07C160"/><path d="M8 10c3-4 10-3 10 1 0 2.5-2.5 4-5 3l-3 2 1-2.5C9.5 12.5 8 11.5 8 10z" fill="white"/></svg>`;const imgHtml=existing?`<img src="${existing}" class="qr-preview" style="margin:0 auto 6px;display:block"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">${t('replaceQr')}</div>`:`<div style="margin-bottom:6px">${icon}</div><div style="font-size:12px;color:var(--color-text-secondary)">${t('uploadQr')} ${label}</div>`;return `<div><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:5px;font-weight:500;display:flex;align-items:center;gap:5px">${icon} ${label}</div><label class="qr-upload-box" style="display:block;cursor:pointer">${imgHtml}<input type="file" accept="image/*" style="display:none" onchange="handleQr(event,'${pfx}','${type}')"></label>${existing?`<button class="btn sm d" style="margin-top:4px;width:100%;justify-content:center" onclick="clearQr('${pfx}','${type}')">${t('removeQr')}</button>`:''}</div>`;}
 function handleQr(e,pfx,type){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{window[pfx+type+'Qr']=ev.target.result;const tc=document.getElementById('atc');if(atab==='addref')rAdmAddRef(tc);else rAdmRefs(tc);};rd.readAsDataURL(f);}
 function clearQr(pfx,type){window[pfx+type+'Qr']='';const tc=document.getElementById('atc');if(atab==='addref')rAdmAddRef(tc);else rAdmRefs(tc);}
-@@ -575,10 +606,14 @@
+function getQr(pfx,type,fb){const k=pfx+type+'Qr';return window[k]!==undefined?window[k]:(fb||'');}
+function refFormFields(ref,pfx){const v=f=>ref?ref[f]||'':'';const aqr=getQr(pfx,'alipay',ref?.alipayQr);const wqr=getQr(pfx,'wechat',ref?.wechatQr);return `<div class="sect">${lang==='en'?'Basic Info':(lang==='zht'?'基本資訊':'基本信息')}</div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('referrerName')}</label><input type="text" id="${pfx}name" value="${v('name')}"></div><div class="fl"><label>${t('iMemberNo')}</label><input type="text" id="${pfx}iMemberNo" value="${v('iMemberNo')}"></div></div><div class="fl"><label>${t('address')}</label><input type="text" id="${pfx}address" value="${v('address')}"></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('country')}</label><input type="text" id="${pfx}country" value="${v('country')}"></div><div class="fl"><label>${t('phone')}</label><input type="text" id="${pfx}phone" value="${v('phone')}"></div></div><div class="fl"><label>${t('email')}</label><input type="email" id="${pfx}email" value="${v('email')}"></div><div class="sect">${lang==='en'?'Referral Settings':(lang==='zht'?'推薦設定':'推荐设置')}</div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('referralCodeLabel')}</label><div style="display:flex;gap:6px"><input type="text" id="${pfx}code" value="${v('code')}" style="text-transform:uppercase;font-family:var(--font-mono);flex:1"><button class="btn sm" onclick="gCode('${pfx}code')">${t('random')}</button></div></div><div class="fl"><label>${t('status')}</label><select id="${pfx}active"><option value="1" ${(!ref||ref.active)?'selected':''}>${t('active2')}</option><option value="0" ${(ref&&!ref.active)?'selected':''}>${t('inactive2')}</option></select></div></div><div class="fl"><label>${t('note')}</label><input type="text" id="${pfx}note" value="${v('note')}"></div><div class="sect">${lang==='en'?'Payment QR Codes':(lang==='zht'?'收款二維碼':'收款二维码')}</div><div class="m i" style="font-size:12px;margin-bottom:10px">${t('qrNote')}</div><div class="g2">${qrUploadHtml(pfx,'alipay',aqr)}${qrUploadHtml(pfx,'wechat',wqr)}</div>`;}
+function gCode(id){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];document.getElementById(id).value=s;}
+function collectRefFields(pfx,rid){return{name:document.getElementById(pfx+'name').value.trim(),iMemberNo:document.getElementById(pfx+'iMemberNo').value.trim(),address:document.getElementById(pfx+'address').value.trim(),country:document.getElementById(pfx+'country').value.trim(),phone:document.getElementById(pfx+'phone').value.trim(),email:document.getElementById(pfx+'email').value.trim().toLowerCase(),code:document.getElementById(pfx+'code').value.trim().toUpperCase(),active:document.getElementById(pfx+'active').value==='1',note:document.getElementById(pfx+'note').value.trim(),alipayQr:getQr(pfx,'alipay',rid?(refById(rid)||{}).alipayQr:''),wechatQr:getQr(pfx,'wechat',rid?(refById(rid)||{}).wechatQr:'')};}
+function rAdmRefs(tc){tc.innerHTML=db.referrers.length===0?`<div style="text-align:center;color:var(--color-text-secondary);padding:3rem;font-size:13px">${t('noReferrers')}</div>`:db.referrers.map(ref=>{const cnt=membersByRef(ref.id).length,isEditing=editingRefId===ref.id,pfx='er'+ref.id+'-';return`<div style="border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:10px;overflow:hidden"><div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px"><div style="flex:1;min-width:0"><div style="font-weight:500;font-size:14px;margin-bottom:4px">${ref.name}<span class="dot ${ref.active?'g':'r'}" style="margin-left:6px"></span><span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">${ref.active?t('active2'):t('inactive2')}</span></div><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--color-text-secondary)">${ref.iMemberNo?`<span>🪪 ${ref.iMemberNo}</span>`:''}${ref.phone?`<span>📞 ${ref.phone}</span>`:''}${ref.email?`<span>✉ ${ref.email}</span>`:''}${ref.country?`<span>🌏 ${ref.country}</span>`:''}<span>${t('referralCode')}: <span class="code">${ref.code}</span></span><span class="bdg b">${cnt}</span></div>${ref.note?`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">${t('note')}: ${ref.note}</div>`:''}</div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:10px"><button class="btn sm" onclick="toggleEditRef('${ref.id}')">${isEditing?t('cancel'):t('edit')}</button><button class="btn sm" onclick="togRef('${ref.id}')">${ref.active?t('deactivate'):t('activate')}</button><button class="btn sm d" onclick="delRef('${ref.id}')">${t('delete')}</button></div></div>${isEditing?`<div style="background:var(--color-background-secondary);padding:16px;border-top:.5px solid var(--color-border-tertiary)"><div id="er-msg-${ref.id}"></div>${refFormFields(ref,pfx)}<div style="margin-top:12px;display:flex;gap:8px"><button class="btn p sm" onclick="saveEditRef('${ref.id}')">${t('saveChanges')}</button><button class="btn sm" onclick="toggleEditRef('${ref.id}')">${t('cancel')}</button></div></div>`:''}</div>`;}).join('');}
+function toggleEditRef(id){editingRefId=editingRefId===id?null:id;rAdmRefs(document.getElementById('atc'));}
+function saveEditRef(id){const pfx='er'+id+'-',msg=document.getElementById('er-msg-'+id),d=collectRefFields(pfx,id);if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code&&r.id!==id)){msg.innerHTML=`<div class="m e">${t('errorDupCode')}</div>`;return;}Object.assign(refById(id),d);window['er'+id+'-alipayQr']=undefined;window['er'+id+'-wechatQr']=undefined;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
+function rAdmAddRef(tc){tc.innerHTML=`<div style="max-width:580px"><div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem"><div style="font-size:14px;font-weight:500;margin-bottom:4px">${t('addReferrer')}</div><div id="am"></div>${refFormFields(null,'nr-')}<button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:12px" onclick="addRef()">${t('saveReferrer')}</button></div><div class="m i" style="font-size:12px">${lang==='en'?'Referrers are not member accounts and cannot log in to the shop.':(lang==='zht'?'推薦人不是會員帳戶，無法登入商店。':'推荐人不是会员账户，无法登录商店。')}</div></div>`;}
+function addRef(){const msg=document.getElementById('am'),d=collectRefFields('nr-');if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code)){msg.innerHTML=`<div class="m e">${t('errorCodeExists')}</div>`;return;}db.referrers.push({id:'r'+Date.now(),...d,created:new Date().toLocaleDateString()});window['nr-alipayQr']=undefined;window['nr-wechatQr']=undefined;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Referrer added! Code: ':(lang==='zht'?'推薦人已新增！推薦碼：':'推荐人已添加！推荐码：')}<span class="code">${d.code}</span></div>`;setTimeout(()=>{atab='referrers';editingRefId=null;rAdm(document.getElementById('root'));},1200);}
 function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.active=!r.active;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmMem(tc){tc.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>${t('memberName')}</th><th>${t('email')}</th><th>${t('referrer')}</th><th>${t('referralCode')}</th><th>${t('regDate')}</th><th>${t('orders')}</th></tr></thead><tbody>${db.users.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:2rem">${t('noMembers')}</td></tr>`:db.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="ava" style="width:24px;height:24px;font-size:10px">${ini(u.name)}</div><span style="font-weight:500">${u.name}</span></div></td><td style="color:var(--color-text-secondary)">${u.email}</td><td><span class="bdg a">${u.referrerName}</span></td><td><span class="code">${refById(u.referrerId)?.code||'—'}</span></td><td style="color:var(--color-text-secondary)">${u.joined}</td><td>${u.orders||0}</td></tr>`).join('')}</tbody></table></div>`;}
- 
 
-function rAdmSettings(tc){tc.innerHTML=`<div style="max-width:480px"><div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
-function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
+function rAdmSettings(tc){const heroImg=db.heroImage||'';tc.innerHTML=`<div style="max-width:480px">
+<div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem">
+  <div style="font-size:15px;font-weight:500;margin-bottom:1rem">${lang==='en'?'Hero Banner Image':(lang==='zht'?'首頁橫幅圖片':'首页横幅图片')}</div>
+  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">${lang==='en'?'This large photo appears at the top of the shop page. Recommended: wide landscape image (1400×600px or similar).':(lang==='zht'?'這張大圖顯示在商店頁面頂部。建議使用寬橫幅圖片。':'这张大图显示在商店页面顶部。建议使用宽横幅图片。')}</div>
+  ${heroImg?`<div style="margin-bottom:12px;border-radius:var(--border-radius-md);overflow:hidden;border:.5px solid var(--color-border-tertiary)"><img src="${heroImg}" style="width:100%;height:180px;object-fit:cover;display:block"></div>`:''}
+  <label class="img-upload-box" style="display:block;cursor:pointer;margin-bottom:8px">
+    <div style="font-size:12px;color:var(--color-text-secondary)">${heroImg?(lang==='en'?'Click to replace banner image':(lang==='zht'?'點擊更換圖片':'点击更换图片')):(lang==='en'?'Click to upload banner image (JPG/PNG/WebP)':(lang==='zht'?'點擊上傳橫幅圖片':'点击上传横幅图片'))}</div>
+    <input type="file" accept="image/*" style="display:none" onchange="handleHeroImg(event)">
+  </label>
+  ${heroImg?`<button class="btn sm d" style="width:100%;justify-content:center" onclick="removeHeroImg()">${lang==='en'?'Remove banner image':(lang==='zht'?'移除圖片':'移除图片')}</button>`:''}
+  <div id="hero-img-msg" style="margin-top:8px"></div>
+</div>
+<div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
+function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.heroImage=ev.target.result;sv();const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
+function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
 function saveAdminSettings(){const em=document.getElementById('stg-email').value.trim().toLowerCase(),cur=document.getElementById('stg-cur-pw').value,npw=document.getElementById('stg-new-pw').value,npw2=document.getElementById('stg-new-pw2').value,msg=document.getElementById('stg-msg');if(cur!==db.adminPassword){msg.innerHTML=`<div class="m e">${t('errorCurrentPassword')}</div>`;return;}if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(npw&&npw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(npw&&npw!==npw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}db.adminEmail=em;if(npw)db.adminPassword=npw;sv();msg.innerHTML=`<div class="m s">${t('credentialsSaved')}</div>`;document.getElementById('stg-cur-pw').value='';document.getElementById('stg-new-pw').value='';document.getElementById('stg-new-pw2').value='';if(document.getElementById('stg-sb'))document.getElementById('stg-sb').style.width='0%';}
 
 function toggleFeeEdit(){const ed=document.getElementById('fee-edit'),disp=document.getElementById('fee-display');if(!ed||!disp)return;const isOpen=ed.style.display==='block';ed.style.display=isOpen?'none':'block';if(!isOpen){document.getElementById('fee-input').value=(FEE_RATE*100).toFixed(4).replace(/\.?0+$/,'');document.getElementById('fee-input').focus();}}
 function saveFeeRate(){const inp=document.getElementById('fee-input'),msg=document.getElementById('fee-msg');const v=parseFloat(inp.value);if(isNaN(v)||v<0||v>100){msg.innerHTML=`<div class="m e" style="font-size:11px;padding:4px 8px">${lang==='en'?'Enter 0–100':(lang==='zht'?'請輸入 0–100':'请输入 0–100')}</div>`;return;}FEE_RATE=parseFloat((v/100).toFixed(6));sv();document.getElementById('fee-display').textContent=(v).toFixed(2).replace(/\.?0+$/,'')+'%';document.getElementById('fee-edit').style.display='none';msg.innerHTML='';}
- 
 
 go('shop');
 </script>
 </body>
+</html>
