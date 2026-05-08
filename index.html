@@ -52,27 +52,37 @@
 
     /* Mobile hamburger */
     .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; background: none; border: none; }
-    .hamburger span { display: block; width: 22px; height: 1.5px; background: var(--color-text-primary); border-radius: 2px; transition: all .2s; }
+    .hamburger span { display: block; width: 22px; height: 1.5px; background: var(--color-text-primary); border-radius: 2px; transition: all .25s; }
+    .hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
     .mob-menu { display: none; position: fixed; inset: 0; z-index: 200; }
-    .mob-menu-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.3); }
-    .mob-menu-panel { position: absolute; top: 0; right: 0; width: 260px; height: 100%; background: var(--color-background-primary); box-shadow: -4px 0 24px rgba(0,0,0,.12); display: flex; flex-direction: column; overflow-y: auto; }
-    .mob-menu-header { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.25rem; border-bottom: .5px solid var(--color-border-tertiary); }
+    .mob-menu.open { display: block; }
+    .mob-menu-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.35); animation: fadeIn .2s; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .mob-menu-panel { position: absolute; top: 0; right: 0; width: min(300px, 88vw); height: 100%; background: var(--color-background-primary); box-shadow: -6px 0 32px rgba(0,0,0,.14); display: flex; flex-direction: column; overflow-y: auto; animation: slideIn .22s cubic-bezier(.32,.72,0,1); }
+    @keyframes slideIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
+    .mob-menu-header { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.25rem; border-bottom: .5px solid var(--color-border-tertiary); flex-shrink: 0; }
     .mob-menu-logo { font-size: 17px; font-weight: 500; letter-spacing: -.4px; cursor: pointer; }
-    .mob-close { background: none; border: none; cursor: pointer; font-size: 22px; color: var(--color-text-secondary); line-height: 1; padding: 0; }
-    .mob-nav-item { display: flex; align-items: center; padding: 13px 1.25rem; font-size: 15px; color: var(--color-text-primary); cursor: pointer; border: none; background: none; width: 100%; text-align: left; gap: 10px; border-bottom: .5px solid var(--color-border-tertiary); font-family: var(--font-sans); }
-    .mob-nav-item:hover { background: var(--color-background-secondary); }
-    .mob-nav-item svg { opacity: .5; flex-shrink: 0; }
-    .mob-section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .6px; padding: 14px 1.25rem 6px; }
-    .mob-lang-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 1.25rem; font-size: 14px; color: var(--color-text-secondary); cursor: pointer; border: none; background: none; width: 100%; font-family: var(--font-sans); }
-    .mob-lang-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+    .mob-close { background: none; border: none; cursor: pointer; font-size: 24px; color: var(--color-text-secondary); line-height: 1; padding: 0 2px; }
+    .mob-nav-item { display: flex; align-items: center; padding: 14px 1.25rem; font-size: 15px; color: var(--color-text-primary); cursor: pointer; border: none; background: none; width: 100%; text-align: left; gap: 12px; border-bottom: .5px solid var(--color-border-tertiary); font-family: var(--font-sans); }
+    .mob-nav-item:active { background: var(--color-background-secondary); }
+    .mob-nav-item svg { flex-shrink: 0; color: var(--color-text-secondary); }
+    .mob-section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .6px; padding: 16px 1.25rem 6px; }
+    .mob-lang-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 1.25rem; font-size: 14px; color: var(--color-text-secondary); cursor: pointer; border: none; background: none; width: 100%; font-family: var(--font-sans); }
+    .mob-lang-item:active { background: var(--color-background-secondary); }
     .mob-lang-item.on { color: var(--color-text-primary); font-weight: 500; }
-    .mob-rate { padding: 10px 1.25rem 14px; font-size: 11px; color: var(--color-text-secondary); border-top: .5px solid var(--color-border-tertiary); margin-top: auto; }
+    .mob-lang-item .check { opacity: 0; }
+    .mob-lang-item.on .check { opacity: 1; }
+    .mob-rate { padding: 12px 1.25rem 16px; font-size: 11px; color: var(--color-text-secondary); border-top: .5px solid var(--color-border-tertiary); margin-top: auto; display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
     @media (max-width: 600px) {
       .hamburger { display: flex; }
       .nav-desktop { display: none !important; }
       .hero { min-height: 380px; padding: 5rem 1rem; }
       .hero h1 { font-size: 28px; }
       .prods { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 1rem; }
+      .pgw { padding: 1rem; }
+      .pg { padding: 0 1rem; }
     }
 
     .btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 14px; background: transparent; color: var(--color-text-primary); }
@@ -207,10 +217,8 @@
     </div>
     <div class="nav-r" id="nr"></div>
   </div>
-  <!-- Mobile rate chip (always visible on mobile) -->
-  <div class="rate-chip" id="mob-rate-chip" style="display:none"><span class="rate-dot loading" id="mob-rdot"></span><span id="mob-rlbl">...</span></div>
   <!-- Hamburger -->
-  <button class="hamburger" onclick="openMobMenu()" aria-label="Menu">
+  <button class="hamburger" id="hamburger-btn" onclick="openMobMenu()" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
 </nav>
@@ -223,12 +231,21 @@
       <span class="mob-menu-logo" onclick="closeMobMenu();go('shop')">Harvest</span>
       <button class="mob-close" onclick="closeMobMenu()">×</button>
     </div>
-    <div id="mob-nav-links"><!-- filled by renderMobMenu() --></div>
+    <div id="mob-nav-links"></div>
     <div class="mob-section-label" id="mob-lang-label">Language</div>
-    <button class="mob-lang-item on" id="mob-lb-en" onclick="setLang('en');closeMobMenu()">EN — English</button>
-    <button class="mob-lang-item" id="mob-lb-zh" onclick="setLang('zh');closeMobMenu()">简体 — Simplified</button>
-    <button class="mob-lang-item" id="mob-lb-zht" onclick="setLang('zht');closeMobMenu()">繁體 — Traditional</button>
-    <div class="mob-rate"><span class="rate-dot loading" id="mob-rdot2"></span> <span id="mob-rlbl2">...</span></div>
+    <button class="mob-lang-item on" id="mob-lb-en" onclick="setLang('en');closeMobMenu()">
+      <span>EN — English</span>
+      <svg class="check" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="mob-lang-item" id="mob-lb-zh" onclick="setLang('zh');closeMobMenu()">
+      <span>简体 — Simplified</span>
+      <svg class="check" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="mob-lang-item" id="mob-lb-zht" onclick="setLang('zht');closeMobMenu()">
+      <span>繁體 — Traditional</span>
+      <svg class="check" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="mob-rate"><span class="rate-dot loading" id="mob-rdot2"></span><span id="mob-rlbl2">Loading rate…</span></div>
   </div>
 </div>
 
@@ -505,6 +522,7 @@ function setLang(l){
   document.getElementById('lb-en').classList.toggle('on',l==='en');
   document.getElementById('lb-zh').classList.toggle('on',l==='zh');
   document.getElementById('lb-zht').classList.toggle('on',l==='zht');
+  ['en','zh','zht'].forEach(x=>{const b=document.getElementById('mob-lb-'+x);if(b)b.classList.toggle('on',l===x);});
   const lbl=document.getElementById('lang-dd-label');
   if(lbl)lbl.textContent=l==='en'?'EN':l==='zh'?'简体':'繁體';
   const navShop=document.getElementById('nav-shop');if(navShop)navShop.textContent=t('shop');
@@ -515,26 +533,6 @@ function toggleLangMenu(e){e.stopPropagation();document.getElementById('lang-dd-
 function closeLangMenu(){document.getElementById('lang-dd-menu').classList.remove('open');}
 document.addEventListener('click',function(e){const dd=document.getElementById('lang-dd');if(dd&&!dd.contains(e.target))closeLangMenu();});
 
-function openMobMenu(){renderMobMenu();document.getElementById('mob-menu').style.display='block';document.body.style.overflow='hidden';}
-function closeMobMenu(){document.getElementById('mob-menu').style.display='none';document.body.style.overflow='';}
-function renderMobMenu(){
-  const l=document.getElementById('mob-nav-links');if(!l)return;
-  const langLabel=lang==='en'?'Language':lang==='zht'?'語言':'语言';
-  if(document.getElementById('mob-lang-label'))document.getElementById('mob-lang-label').textContent=langLabel;
-  ['mob-lb-en','mob-lb-zh','mob-lb-zht'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('on');});
-  const active=lang==='zh'?'mob-lb-zh':lang==='zht'?'mob-lb-zht':'mob-lb-en';
-  const ael=document.getElementById(active);if(ael)ael.classList.add('on');
-  // sync rate
-  const rlbl=document.getElementById('rlbl');
-  ['mob-rlbl2'].forEach(id=>{const el=document.getElementById(id);if(el&&rlbl)el.textContent=rlbl.textContent;});
-  const isLoggedIn=!!db.cur;
-  if(isLoggedIn){
-    const c=cart.reduce((s,i)=>s+i.qty,0);
-    l.innerHTML=`<button class="mob-nav-item" onclick="closeMobMenu();go('shop')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h1.5l2 6.5h6l1.5-5H5"/><circle cx="6" cy="13" r="1"/><circle cx="11" cy="13" r="1"/></svg>${t('shop')}${c>0?` <span class="bdg g">${c}</span>`:''}</button><button class="mob-nav-item" onclick="closeMobMenu();tCart()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h1.5l2 6.5h6l1.5-5H5"/><circle cx="6" cy="13" r="1"/><circle cx="11" cy="13" r="1"/></svg>${t('cart')} ${c>0?`<span class="bdg g">${c}</span>`:''}</button><button class="mob-nav-item" onclick="closeMobMenu();go('acc')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.5"/><path d="M2.5 13c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>${db.cur.name.split(' ')[0]}</button><button class="mob-nav-item" onclick="closeMobMenu();go('admin-login')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="7" width="12" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>${t('admin')}</button>`;
-  } else {
-    l.innerHTML=`<button class="mob-nav-item" onclick="closeMobMenu();go('shop')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h1.5l2 6.5h6l1.5-5H5"/><circle cx="6" cy="13" r="1"/><circle cx="11" cy="13" r="1"/></svg>${t('shop')}</button><button class="mob-nav-item" onclick="closeMobMenu();go('reg')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="5.5" r="2.5"/><path d="M1.5 13c0-3 2.5-5 5.5-5"/><path d="M11 10v4M9 12h4"/></svg>${t('register')}</button><button class="mob-nav-item" onclick="closeMobMenu();go('login')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3"/><path d="M10 5l3 3-3 3M13 8H6"/></svg>${t('signIn')}</button><button class="mob-nav-item" onclick="closeMobMenu();go('admin-login')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="7" width="12" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>${t('admin')}</button>`;
-  }
-}
 
 async function fetchRate(){
   const dot=document.getElementById('rdot'),lbl=document.getElementById('rlbl');
@@ -578,6 +576,52 @@ function rNav(){
   const nr=document.getElementById('nr');if(!nr)return;
   if(db.cur){const c=cart.reduce((s,i)=>s+i.qty,0);nr.innerHTML=`<button class="btn" onclick="tCart()"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>${t('cart')} <span class="bdg g" id="cart-count">${c}</span></button><div class="ava" onclick="go('acc')">${ini(db.cur.name)}</div>`;}
   else{nr.innerHTML=`<a style="font-size:13px;color:var(--color-text-secondary);cursor:pointer;text-decoration:none;" onmouseover="this.style.color='var(--color-text-primary)'" onmouseout="this.style.color='var(--color-text-secondary)'" onclick="go('reg')">${t('register')}</a><a style="font-size:13px;color:var(--color-text-secondary);cursor:pointer;text-decoration:none;" onmouseover="this.style.color='var(--color-text-primary)'" onmouseout="this.style.color='var(--color-text-secondary)'" onclick="go('login')">${t('signIn')}</a>`;}
+  renderMobMenu();
+}
+
+function renderMobMenu(){
+  const el=document.getElementById('mob-nav-links');if(!el)return;
+  // Sync language active states
+  ['en','zh','zht'].forEach(l=>{
+    const b=document.getElementById('mob-lb-'+l);
+    if(b)b.classList.toggle('on',lang===l);
+  });
+  // Update section label
+  const lbl=document.getElementById('mob-lang-label');
+  if(lbl)lbl.textContent=lang==='en'?'Language':lang==='zht'?'語言':'语言';
+  // Nav links
+  const shopIcon=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 2h12l-1.5 6H3.5L2 2z"/><circle cx="5.5" cy="13" r="1"/><circle cx="10.5" cy="13" r="1"/></svg>`;
+  const adminIcon=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M8 5v6"/></svg>`;
+  const userIcon=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5.5" r="2.5"/><path d="M2.5 13c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>`;
+  const cartIcon=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>`;
+  const outIcon=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M10 8H3m0 0l2.5-2.5M3 8l2.5 2.5"/><path d="M7 4V3a1 1 0 011-1h4a1 1 0 011 1v10a1 1 0 01-1 1H8a1 1 0 01-1-1v-1"/></svg>`;
+  if(db.cur){
+    const c=cart.reduce((s,i)=>s+i.qty,0);
+    el.innerHTML=`
+      <button class="mob-nav-item" onclick="closeMobMenu();go('shop')">${shopIcon}${t('shop')}</button>
+      <button class="mob-nav-item" onclick="closeMobMenu();tCart()">${cartIcon}${t('cart')}${c>0?` <span class="bdg g" style="margin-left:auto">${c}</span>`:''}</button>
+      <button class="mob-nav-item" onclick="closeMobMenu();go('acc')">${userIcon}${t('myAccount')}</button>
+      <button class="mob-nav-item" onclick="closeMobMenu();go('admin-login')">${adminIcon}${t('admin')}</button>
+      <button class="mob-nav-item" style="color:#A32D2D" onclick="closeMobMenu();doLO()">${outIcon}${t('logout')}</button>`;
+  } else {
+    el.innerHTML=`
+      <button class="mob-nav-item" onclick="closeMobMenu();go('shop')">${shopIcon}${t('shop')}</button>
+      <button class="mob-nav-item" onclick="closeMobMenu();go('admin-login')">${adminIcon}${t('admin')}</button>
+      <button class="mob-nav-item" onclick="closeMobMenu();go('reg')">${userIcon}${t('register')}</button>
+      <button class="mob-nav-item" onclick="closeMobMenu();go('login')">${userIcon}${t('signIn')}</button>`;
+  }
+}
+
+function openMobMenu(){
+  document.getElementById('mob-menu').classList.add('open');
+  document.getElementById('hamburger-btn').classList.add('open');
+  document.body.style.overflow='hidden';
+  renderMobMenu();
+}
+function closeMobMenu(){
+  document.getElementById('mob-menu').classList.remove('open');
+  document.getElementById('hamburger-btn').classList.remove('open');
+  document.body.style.overflow='';
 }
 
 let vw='shop';
