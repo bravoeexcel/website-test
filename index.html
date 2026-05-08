@@ -28,6 +28,7 @@
 
     .nav { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1.5rem; border-bottom: .5px solid var(--color-border-tertiary); background: var(--color-background-primary); gap: 8px; position: sticky; top: 0; z-index: 50; }
     .logo { font-size: 18px; font-weight: 500; cursor: pointer; letter-spacing: -.4px; flex-shrink: 0; }
+    .logo-img { height: 32px; max-width: 140px; object-fit: contain; display: block; cursor: pointer; }
     .nav-c { display: flex; gap: 1.5rem; }
     .nav-c a { font-size: 13px; color: var(--color-text-secondary); cursor: pointer; text-decoration: none; }
     .nav-c a:hover { color: var(--color-text-primary); }
@@ -232,7 +233,7 @@
 <body>
 
 <nav class="nav">
-  <span class="logo" onclick="go('shop')">Harvest</span>
+  <span class="logo" id="site-logo" onclick="go('shop')">Harvest</span>
 
   <!-- Always-visible right side: rate chip, language, then desktop-only links + hamburger -->
   <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
@@ -544,6 +545,21 @@ let db={
 };
 try{const s=localStorage.getItem('harvest_shop');if(s){const p=JSON.parse(s);db={...db,...p};if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
 function sv(){try{db.feeRate=FEE_RATE;localStorage.setItem('harvest_shop',JSON.stringify(db));}catch(e){}}
+function renderLogo(){
+  const el=document.getElementById('site-logo');
+  if(!el)return;
+  if(db.logoImage){
+    el.innerHTML=`<img src="${db.logoImage}" class="logo-img" onclick="go('shop')" alt="logo">`;
+    el.style.fontSize='';
+    el.style.fontWeight='';
+  } else {
+    el.innerHTML='';
+    el.textContent=db.logoText||'Harvest';
+    el.style.fontSize='18px';
+    el.style.fontWeight='500';
+  }
+}
+renderLogo();
 
 function pName(p){return (lang==='zh'||lang==='zht')?(p.name_zh||p.name_en||''):(p.name_en||p.name_zh||'');}
 function pDesc(p){return (lang==='zh'||lang==='zht')?(p.desc_zh||p.desc_en||''):(p.desc_en||p.desc_zh||'');}
@@ -821,7 +837,32 @@ function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.activ
 function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmMem(tc){tc.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>${t('memberName')}</th><th>${t('email')}</th><th>${t('referrer')}</th><th>${t('referralCode')}</th><th>${t('regDate')}</th><th>${t('orders')}</th></tr></thead><tbody>${db.users.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:2rem">${t('noMembers')}</td></tr>`:db.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="ava" style="width:24px;height:24px;font-size:10px">${ini(u.name)}</div><span style="font-weight:500">${u.name}</span></div></td><td style="color:var(--color-text-secondary)">${u.email}</td><td><span class="bdg a">${u.referrerName}</span></td><td><span class="code">${refById(u.referrerId)?.code||'—'}</span></td><td style="color:var(--color-text-secondary)">${u.joined}</td><td>${u.orders||0}</td></tr>`).join('')}</tbody></table></div>`;}
 
-function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.heroTextTitle||'';const heroSub=db.heroTextSub||'';tc.innerHTML=`<div style="max-width:480px">
+function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.heroTextTitle||'';const heroSub=db.heroTextSub||'';const logoImg=db.logoImage||'';const logoTxt=db.logoText||'Harvest';tc.innerHTML=`<div style="max-width:480px">
+<div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem">
+  <div style="font-size:15px;font-weight:500;margin-bottom:4px">${lang==='en'?'Logo':lang==='zht'?'標誌':'标志'}</div>
+  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">${lang==='en'?'Upload an image logo or set a custom text name.':lang==='zht'?'上傳圖片標誌或設定文字名稱。':'上传图片标志或设置文字名称。'}</div>
+  <div id="logo-msg"></div>
+  <div style="margin-bottom:14px">
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">${lang==='en'?'Current Logo':lang==='zht'?'目前標誌':'当前标志'}</div>
+    <div style="padding:12px 16px;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);display:inline-flex;align-items:center;min-width:120px">
+      ${logoImg?`<img src="${logoImg}" style="height:28px;max-width:120px;object-fit:contain;">`:`<span style="font-size:18px;font-weight:500;letter-spacing:-.4px">${logoTxt}</span>`}
+    </div>
+  </div>
+  <div class="fl" style="margin-bottom:10px">
+    <label>${lang==='en'?'Logo Text (used if no image)':lang==='zht'?'標誌文字（無圖片時使用）':'标志文字（无图片时使用）'}</label>
+    <input type="text" id="stg-logo-text" value="${logoTxt}" placeholder="Harvest" style="width:100%">
+  </div>
+  <button class="btn p sm" style="margin-bottom:14px" onclick="saveLogoText()">${lang==='en'?'Save Text':lang==='zht'?'儲存文字':'保存文字'}</button>
+  <div class="dv"></div>
+  <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:12px 0 6px">${lang==='en'?'Logo Image':lang==='zht'?'標誌圖片':'标志图片'}</div>
+  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:10px">${lang==='en'?'Recommended: PNG with transparent background, height ~60px.':lang==='zht'?'建議使用透明背景的PNG圖片，高度約60像素。':'建议使用透明背景的PNG图片，高度约60像素。'}</div>
+  ${logoImg?`<div style="margin-bottom:12px;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);display:inline-flex"><img src="${logoImg}" style="height:36px;max-width:160px;object-fit:contain;display:block"></div><br>`:''}
+  <label class="img-upload-box" style="display:block;cursor:pointer;margin-bottom:8px">
+    <div style="font-size:12px;color:var(--color-text-secondary)">${logoImg?(lang==='en'?'Click to replace logo image':(lang==='zht'?'點擊更換標誌圖片':'点击更换标志图片')):(lang==='en'?'Click to upload logo image (PNG/SVG/WebP)':(lang==='zht'?'點擊上傳標誌圖片':'点击上传标志图片'))}</div>
+    <input type="file" accept="image/*" style="display:none" onchange="handleLogoImg(event)">
+  </label>
+  ${logoImg?`<button class="btn sm d" style="width:100%;justify-content:center" onclick="removeLogoImg()">${lang==='en'?'Remove logo image':(lang==='zht'?'移除標誌圖片':'移除标志图片')}</button>`:''}
+</div>
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem">
   <div style="font-size:15px;font-weight:500;margin-bottom:4px">${lang==='en'?'Hero Banner':lang==='zht'?'首頁橫幅':'首页横幅'}</div>
   <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">${lang==='en'?'Edit the homepage hero title, subtitle, and background image.':lang==='zht'?'編輯首頁橫幅標題、副標題和背景圖片。':'编辑首页横幅标题、副标题和背景图片。'}</div>
@@ -847,6 +888,9 @@ function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.hero
   <div id="hero-img-msg" style="margin-top:8px"></div>
 </div>
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
+function handleLogoImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.logoImage=ev.target.result;sv();renderLogo();const msg=document.getElementById('logo-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Logo image saved!':lang==='zht'?'標誌圖片已儲存！':'标志图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
+function removeLogoImg(){db.logoImage='';sv();renderLogo();rAdmSettings(document.getElementById('atc'));}
+function saveLogoText(){const txt=document.getElementById('stg-logo-text')?.value.trim()||'Harvest';db.logoText=txt;if(!db.logoImage){sv();renderLogo();}else{sv();}const msg=document.getElementById('logo-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Logo text saved!':lang==='zht'?'標誌文字已儲存！':'标志文字已保存！'}</div>`;setTimeout(()=>{if(msg)msg.innerHTML='';},2000);rAdmSettings(document.getElementById('atc'));}
 function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.heroImage=ev.target.result;sv();const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
 function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}
 function saveHeroTextSettings(){const title=document.getElementById('stg-hero-title')?.value.trim(),sub=document.getElementById('stg-hero-sub')?.value.trim(),msg=document.getElementById('hero-text-msg');if(title!==undefined)db.heroTextTitle=title;if(sub!==undefined)db.heroTextSub=sub;sv();if(msg)msg.innerHTML='<div class="m s" style="font-size:12px">'+(lang==='en'?'Text saved!':lang==='zht'?'文字已儲存！':'文字已保存！')+'</div>';setTimeout(()=>{if(msg)msg.innerHTML='';},2000);}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
