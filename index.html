@@ -50,6 +50,31 @@
     .lang-btn { padding: 4px 10px; cursor: pointer; background: transparent; border: none; color: var(--color-text-secondary); font-size: 12px; }
     .lang-btn.on { background: var(--color-text-primary); color: var(--color-background-primary); }
 
+    /* Mobile hamburger */
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; background: none; border: none; }
+    .hamburger span { display: block; width: 22px; height: 1.5px; background: var(--color-text-primary); border-radius: 2px; transition: all .2s; }
+    .mob-menu { display: none; position: fixed; inset: 0; z-index: 200; }
+    .mob-menu-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.3); }
+    .mob-menu-panel { position: absolute; top: 0; right: 0; width: 260px; height: 100%; background: var(--color-background-primary); box-shadow: -4px 0 24px rgba(0,0,0,.12); display: flex; flex-direction: column; overflow-y: auto; }
+    .mob-menu-header { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.25rem; border-bottom: .5px solid var(--color-border-tertiary); }
+    .mob-menu-logo { font-size: 17px; font-weight: 500; letter-spacing: -.4px; cursor: pointer; }
+    .mob-close { background: none; border: none; cursor: pointer; font-size: 22px; color: var(--color-text-secondary); line-height: 1; padding: 0; }
+    .mob-nav-item { display: flex; align-items: center; padding: 13px 1.25rem; font-size: 15px; color: var(--color-text-primary); cursor: pointer; border: none; background: none; width: 100%; text-align: left; gap: 10px; border-bottom: .5px solid var(--color-border-tertiary); font-family: var(--font-sans); }
+    .mob-nav-item:hover { background: var(--color-background-secondary); }
+    .mob-nav-item svg { opacity: .5; flex-shrink: 0; }
+    .mob-section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .6px; padding: 14px 1.25rem 6px; }
+    .mob-lang-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 1.25rem; font-size: 14px; color: var(--color-text-secondary); cursor: pointer; border: none; background: none; width: 100%; font-family: var(--font-sans); }
+    .mob-lang-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+    .mob-lang-item.on { color: var(--color-text-primary); font-weight: 500; }
+    .mob-rate { padding: 10px 1.25rem 14px; font-size: 11px; color: var(--color-text-secondary); border-top: .5px solid var(--color-border-tertiary); margin-top: auto; }
+    @media (max-width: 600px) {
+      .hamburger { display: flex; }
+      .nav-desktop { display: none !important; }
+      .hero { min-height: 380px; padding: 5rem 1rem; }
+      .hero h1 { font-size: 28px; }
+      .prods { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 1rem; }
+    }
+
     .btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 14px; background: transparent; color: var(--color-text-primary); }
     .btn:hover { background: var(--color-background-secondary); }
     .btn:active { transform: scale(.98); }
@@ -165,7 +190,7 @@
 <nav class="nav">
   <span class="logo" onclick="go('shop')">Harvest</span>
   <div class="nav-spacer"></div>
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+  <div class="nav-desktop" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
     <div class="rate-chip"><span class="rate-dot loading" id="rdot"></span><span id="rlbl">...</span></div>
     <a onclick="go('shop')" id="nav-shop" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer;text-decoration:none;">Shop</a>
     <a onclick="go('admin-login')" id="nav-admin" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer;text-decoration:none;">Admin</a>
@@ -182,7 +207,30 @@
     </div>
     <div class="nav-r" id="nr"></div>
   </div>
+  <!-- Mobile rate chip (always visible on mobile) -->
+  <div class="rate-chip" id="mob-rate-chip" style="display:none"><span class="rate-dot loading" id="mob-rdot"></span><span id="mob-rlbl">...</span></div>
+  <!-- Hamburger -->
+  <button class="hamburger" onclick="openMobMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+
+<!-- Mobile slide-out menu -->
+<div class="mob-menu" id="mob-menu">
+  <div class="mob-menu-overlay" onclick="closeMobMenu()"></div>
+  <div class="mob-menu-panel">
+    <div class="mob-menu-header">
+      <span class="mob-menu-logo" onclick="closeMobMenu();go('shop')">Harvest</span>
+      <button class="mob-close" onclick="closeMobMenu()">×</button>
+    </div>
+    <div id="mob-nav-links"><!-- filled by renderMobMenu() --></div>
+    <div class="mob-section-label" id="mob-lang-label">Language</div>
+    <button class="mob-lang-item on" id="mob-lb-en" onclick="setLang('en');closeMobMenu()">EN — English</button>
+    <button class="mob-lang-item" id="mob-lb-zh" onclick="setLang('zh');closeMobMenu()">简体 — Simplified</button>
+    <button class="mob-lang-item" id="mob-lb-zht" onclick="setLang('zht');closeMobMenu()">繁體 — Traditional</button>
+    <div class="mob-rate"><span class="rate-dot loading" id="mob-rdot2"></span> <span id="mob-rlbl2">...</span></div>
+  </div>
+</div>
 
 <div id="cart-overlay" class="cart-overlay" style="display:none" onclick="closeCart()"></div>
 <div id="cart-drawer" class="cart-drawer" style="display:none"></div>
@@ -467,6 +515,27 @@ function toggleLangMenu(e){e.stopPropagation();document.getElementById('lang-dd-
 function closeLangMenu(){document.getElementById('lang-dd-menu').classList.remove('open');}
 document.addEventListener('click',function(e){const dd=document.getElementById('lang-dd');if(dd&&!dd.contains(e.target))closeLangMenu();});
 
+function openMobMenu(){renderMobMenu();document.getElementById('mob-menu').style.display='block';document.body.style.overflow='hidden';}
+function closeMobMenu(){document.getElementById('mob-menu').style.display='none';document.body.style.overflow='';}
+function renderMobMenu(){
+  const l=document.getElementById('mob-nav-links');if(!l)return;
+  const langLabel=lang==='en'?'Language':lang==='zht'?'語言':'语言';
+  if(document.getElementById('mob-lang-label'))document.getElementById('mob-lang-label').textContent=langLabel;
+  ['mob-lb-en','mob-lb-zh','mob-lb-zht'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('on');});
+  const active=lang==='zh'?'mob-lb-zh':lang==='zht'?'mob-lb-zht':'mob-lb-en';
+  const ael=document.getElementById(active);if(ael)ael.classList.add('on');
+  // sync rate
+  const rlbl=document.getElementById('rlbl');
+  ['mob-rlbl2'].forEach(id=>{const el=document.getElementById(id);if(el&&rlbl)el.textContent=rlbl.textContent;});
+  const isLoggedIn=!!db.cur;
+  if(isLoggedIn){
+    const c=cart.reduce((s,i)=>s+i.qty,0);
+    l.innerHTML=`<button class="mob-nav-item" onclick="closeMobMenu();go('shop')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h1.5l2 6.5h6l1.5-5H5"/><circle cx="6" cy="13" r="1"/><circle cx="11" cy="13" r="1"/></svg>${t('shop')}${c>0?` <span class="bdg g">${c}</span>`:''}</button><button class="mob-nav-item" onclick="closeMobMenu();tCart()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h1.5l2 6.5h6l1.5-5H5"/><circle cx="6" cy="13" r="1"/><circle cx="11" cy="13" r="1"/></svg>${t('cart')} ${c>0?`<span class="bdg g">${c}</span>`:''}</button><button class="mob-nav-item" onclick="closeMobMenu();go('acc')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.5"/><path d="M2.5 13c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>${db.cur.name.split(' ')[0]}</button><button class="mob-nav-item" onclick="closeMobMenu();go('admin-login')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="7" width="12" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>${t('admin')}</button>`;
+  } else {
+    l.innerHTML=`<button class="mob-nav-item" onclick="closeMobMenu();go('shop')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h1.5l2 6.5h6l1.5-5H5"/><circle cx="6" cy="13" r="1"/><circle cx="11" cy="13" r="1"/></svg>${t('shop')}</button><button class="mob-nav-item" onclick="closeMobMenu();go('reg')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="5.5" r="2.5"/><path d="M1.5 13c0-3 2.5-5 5.5-5"/><path d="M11 10v4M9 12h4"/></svg>${t('register')}</button><button class="mob-nav-item" onclick="closeMobMenu();go('login')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3"/><path d="M10 5l3 3-3 3M13 8H6"/></svg>${t('signIn')}</button><button class="mob-nav-item" onclick="closeMobMenu();go('admin-login')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="7" width="12" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>${t('admin')}</button>`;
+  }
+}
+
 async function fetchRate(){
   const dot=document.getElementById('rdot'),lbl=document.getElementById('rlbl');
   try{
@@ -477,12 +546,12 @@ async function fetchRate(){
       const ts=new Date(d.time_last_update_utc).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',month:'numeric',day:'numeric'});
       if(dot){dot.classList.remove('loading');dot.className='rate-dot live';}
       if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4)+' · '+ts;
+      const m2=document.getElementById('mob-rlbl2');if(m2)m2.textContent='1 USD = ¥'+rate.toFixed(4)+' · '+ts;
       document.querySelectorAll('[data-usd]').forEach(el=>el.textContent=cny(parseFloat(el.dataset.usd)));
     }else throw 0;
   }catch(e){
-    try{const r2=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');const d2=await r2.json();rate=d2.usd.cny;if(dot)dot.classList.remove('loading');if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4);document.querySelectorAll('[data-usd]').forEach(el=>el.textContent=cny(parseFloat(el.dataset.usd)));}
-    catch(e2){rate=7.25;if(dot)dot.classList.remove('loading');if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4)+' (ref.)';}
-  }
+    try{const r2=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');const d2=await r2.json();rate=d2.usd.cny;if(dot)dot.classList.remove('loading');if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4);const m2=document.getElementById('mob-rlbl2');if(m2)m2.textContent='1 USD = ¥'+rate.toFixed(4);document.querySelectorAll('[data-usd]').forEach(el=>el.textContent=cny(parseFloat(el.dataset.usd)));}
+    catch(e2){rate=7.25;if(dot)dot.classList.remove('loading');if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4)+' (ref.)';const m2=document.getElementById('mob-rlbl2');if(m2)m2.textContent='1 USD = ¥'+rate.toFixed(4)+' (ref.)';}
 }
 fetchRate();setInterval(fetchRate,3600000);
 
