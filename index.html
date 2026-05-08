@@ -164,15 +164,83 @@
     .qr-item { text-align: center; font-size: 11px; }
     .qr-item img { width: 64px; height: 64px; object-fit: cover; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-tertiary); display: block; margin-bottom: 4px; }
     .qr-preview { width: 80px; height: 80px; object-fit: cover; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-tertiary); }
+
+    /* Hide mobile-only elements on desktop */
+    .mob-right, .mob-menu-btn { display: none !important; }
+    @media (max-width: 600px) {
+      .mob-right { display: flex !important; }
+      .mob-menu-btn { display: flex !important; }
+    }
+    /* ── Mobile hamburger menu ── */
+    .mob-menu-btn {
+      display: none;
+      align-items: center; justify-content: center;
+      width: 36px; height: 36px;
+      background: transparent; border: .5px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-md); cursor: pointer; flex-shrink: 0;
+      color: var(--color-text-primary);
+    }
+    .mob-menu-btn:hover { background: var(--color-background-secondary); }
+
+    .mob-dropdown {
+      display: none;
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-background-primary);
+      border-bottom: .5px solid var(--color-border-secondary);
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+      z-index: 200;
+      padding: 6px 0;
+    }
+    .mob-dropdown.open { display: block; }
+    .mob-dd-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; text-align: left;
+      padding: 12px 20px;
+      font-size: 14px; cursor: pointer;
+      background: transparent; border: none;
+      color: var(--color-text-secondary);
+      border-bottom: .5px solid var(--color-border-tertiary);
+    }
+    .mob-dd-item:last-child { border-bottom: none; }
+    .mob-dd-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+    .mob-dd-item svg { opacity: .55; flex-shrink: 0; }
+
+    /* Hide desktop nav items on mobile */
+    @media (max-width: 600px) {
+      .mob-menu-btn { display: flex; }
+      .nav-desktop-links { display: none !important; }
+      .nav { position: relative; }
+      /* Shrink rate chip on mobile — hide the timestamp part */
+      .rate-chip { font-size: 10px; padding: 3px 7px; max-width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      /* Smaller hero on mobile */
+      .hero { min-height: 300px; }
+      .hero h1 { font-size: 28px; }
+      .hero p { font-size: 14px; }
+      /* Product grid: 2 columns on mobile */
+      .prods { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 1rem; }
+      /* Checkout page padding */
+      .checkout-page { padding: 0 1rem; }
+      /* Modal full-width on mobile */
+      .mod { padding: 1.5rem 1.25rem; }
+      /* Admin table scroll */
+      .pgw { padding: 1rem; }
+      /* Better touch targets for filter pills */
+      .fpill { padding: 7px 14px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
 
 <nav class="nav">
   <span class="logo" onclick="go('shop')">Harvest</span>
-  <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;justify-content:flex-end">
+
+  <!-- Always-visible right side: rate chip, language, then desktop-only links + hamburger -->
+  <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+
+    <!-- Rate chip: always visible -->
     <div class="rate-chip"><span class="rate-dot loading" id="rdot"></span><span id="rlbl">...</span></div>
-    <!-- Language dropdown -->
+
+    <!-- Language dropdown: always visible -->
     <div class="lang-dd" id="lang-dd">
       <button class="lang-dd-btn" id="lang-dd-btn" onclick="toggleLangDd(event)">
         <span id="lang-label">EN</span>
@@ -184,11 +252,39 @@
         <button class="lang-dd-item" id="lb-zht" onclick="setLang('zht');closeLangDd()">繁體 · 中文</button>
       </div>
     </div>
-    <a class="nav-c" style="display:flex;gap:1.25rem;align-items:center">
-      <span onclick="go('shop')" id="nav-shop" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer">Shop</span>
-      <span onclick="go('admin-login')" id="nav-admin" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer">Admin</span>
-    </a>
-    <div class="nav-r" id="nr"></div>
+
+    <!-- Desktop-only: nav links + auth buttons -->
+    <div class="nav-desktop-links" style="display:flex;align-items:center;gap:1.25rem">
+      <a class="nav-c" style="display:flex;gap:1.25rem;align-items:center">
+        <span onclick="go('shop')" id="nav-shop" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer">Shop</span>
+        <span onclick="go('admin-login')" id="nav-admin" style="font-size:13px;color:var(--color-text-secondary);cursor:pointer">Admin</span>
+      </a>
+      <div class="nav-r" id="nr"></div>
+    </div>
+
+    <!-- Mobile-only: cart/avatar when logged in + hamburger -->
+    <div class="nav-r mob-right" id="nr-mob"></div>
+    <button class="mob-menu-btn" id="mob-menu-btn" onclick="toggleMobMenu(event)" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <line x1="2" y1="5" x2="16" y2="5"/>
+        <line x1="2" y1="9" x2="16" y2="9"/>
+        <line x1="2" y1="13" x2="16" y2="13"/>
+      </svg>
+    </button>
+
+  </div>
+
+  <!-- Mobile dropdown -->
+  <div class="mob-dropdown" id="mob-dropdown">
+    <button class="mob-dd-item" id="mob-nav-shop" onclick="go('shop');closeMobMenu()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>
+      <span>Shop</span>
+    </button>
+    <button class="mob-dd-item" id="mob-nav-admin" onclick="go('admin-login');closeMobMenu()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="7" width="12" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+      <span>Admin</span>
+    </button>
+    <div id="mob-nav-auth"><!-- filled by rNav() --></div>
   </div>
 </nav>
 
@@ -469,11 +565,14 @@ function setLang(l){
   const lbl=document.getElementById('lang-label');if(lbl)lbl.textContent=labels[l]||'EN';
   document.getElementById('nav-shop').textContent=t('shop');
   document.getElementById('nav-admin').textContent=t('admin');
+  // Update mobile dropdown labels
+  const ms=document.getElementById('mob-nav-shop');if(ms){const sp=ms.querySelector('span');if(sp)sp.textContent=t('shop');}
+  const ma=document.getElementById('mob-nav-admin');if(ma){const sp=ma.querySelector('span');if(sp)sp.textContent=t('admin');}
   rNav();render();
 }
 function toggleLangDd(e){e.stopPropagation();document.getElementById('lang-dd-menu').classList.toggle('open');}
 function closeLangDd(){document.getElementById('lang-dd-menu').classList.remove('open');}
-document.addEventListener('click',function(e){const dd=document.getElementById('lang-dd');if(dd&&!dd.contains(e.target))closeLangDd();});
+fetchRate();setInterval(fetchRate,3600000);
 
 async function fetchRate(){
   const dot=document.getElementById('rdot'),lbl=document.getElementById('rlbl');
@@ -492,7 +591,15 @@ async function fetchRate(){
     catch(e2){rate=7.25;if(dot)dot.classList.remove('loading');if(lbl)lbl.textContent='1 USD = ¥'+rate.toFixed(4)+' (ref.)';}
   }
 }
-fetchRate();setInterval(fetchRate,3600000);
+
+// Mobile hamburger menu
+function toggleMobMenu(e){e.stopPropagation();document.getElementById('mob-dropdown').classList.toggle('open');}
+function closeMobMenu(){document.getElementById('mob-dropdown').classList.remove('open');}
+document.addEventListener('click',function(e){
+  const dd=document.getElementById('mob-dropdown');const btn=document.getElementById('mob-menu-btn');
+  if(dd&&btn&&!dd.contains(e.target)&&!btn.contains(e.target))closeMobMenu();
+  const langDd=document.getElementById('lang-dd');if(langDd&&!langDd.contains(e.target))closeLangDd();
+});
 
 function ini(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 function refByCode(c){return db.referrers.find(r=>r.code===c.toUpperCase()&&r.active);}
@@ -515,8 +622,19 @@ function changeQty(id,delta){const ex=cart.find(x=>x.id===id);if(!ex)return;ex.q
 
 function rNav(){
   const nr=document.getElementById('nr');if(!nr)return;
-  if(db.cur){const c=cart.reduce((s,i)=>s+i.qty,0);nr.innerHTML=`<button class="btn" onclick="tCart()"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>${t('cart')} <span class="bdg g" id="cart-count">${c}</span></button><div class="ava" onclick="go('acc')">${ini(db.cur.name)}</div>`;}
-  else{nr.innerHTML=`<button class="nav-link-btn" onclick="go('reg')">${t('register')}</button><button class="nav-link-btn" onclick="go('login')">${t('signIn')}</button>`;}
+  const nrMob=document.getElementById('nr-mob');
+  const mobAuth=document.getElementById('mob-nav-auth');
+  if(db.cur){
+    const c=cart.reduce((s,i)=>s+i.qty,0);
+    const cartHtml=`<button class="btn" onclick="tCart()"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1h2l2.4 7.6a1 1 0 001 .7h5.2a1 1 0 001-.8L14 5H4"/><circle cx="6.5" cy="13.5" r="1"/><circle cx="11.5" cy="13.5" r="1"/></svg>${t('cart')} <span class="bdg g" id="cart-count">${c}</span></button><div class="ava" onclick="go('acc')">${ini(db.cur.name)}</div>`;
+    nr.innerHTML=cartHtml;
+    if(nrMob)nrMob.innerHTML=cartHtml;
+    if(mobAuth)mobAuth.innerHTML=`<button class="mob-dd-item" onclick="go('acc');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg><span>${t('myAccount')}</span></button><button class="mob-dd-item" onclick="db.cur=null;cart=[];rNav();go('shop');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3"/><path d="M10 11l3-3-3-3M13 8H6"/></svg><span>${t('logout')}</span></button>`;
+  }else{
+    nr.innerHTML=`<button class="nav-link-btn" onclick="go('reg')">${t('register')}</button><button class="nav-link-btn" onclick="go('login')">${t('signIn')}</button>`;
+    if(nrMob)nrMob.innerHTML='';
+    if(mobAuth)mobAuth.innerHTML=`<button class="mob-dd-item" id="mob-nav-reg" onclick="go('reg');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M12 2v4M10 4h4"/></svg><span>${t('register')}</span></button><button class="mob-dd-item" id="mob-nav-login" onclick="go('login');closeMobMenu()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 3h3a1 1 0 011 1v8a1 1 0 01-1 1h-3"/><path d="M6 11l3-3-3-3M9 8H2"/></svg><span>${t('signIn')}</span></button>`;
+  }
 }
 
 let vw='shop';
