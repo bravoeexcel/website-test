@@ -599,7 +599,7 @@ function renderMobMenu(){
     const c=cart.reduce((s,i)=>s+i.qty,0);
     el.innerHTML=`
       <button class="mob-nav-item" onclick="closeMobMenu();go('shop')">${shopIcon}${t('shop')}</button>
-      <button class="mob-nav-item" onclick="closeMobMenu();tCart()">${cartIcon}${t('cart')}${c>0?` <span class="bdg g" style="margin-left:auto">${c}</span>`:''}</button>
+      <button class="mob-nav-item" onclick="closeMobMenu();tCart()">${cartIcon}${t('cart')}${c>0?'<span class="bdg g" style="margin-left:auto">'+c+'</span>':''}</button>
       <button class="mob-nav-item" onclick="closeMobMenu();go('acc')">${userIcon}${t('myAccount')}</button>
       <button class="mob-nav-item" onclick="closeMobMenu();go('admin-login')">${adminIcon}${t('admin')}</button>
       <button class="mob-nav-item" style="color:#A32D2D" onclick="closeMobMenu();doLO()">${outIcon}${t('logout')}</button>`;
