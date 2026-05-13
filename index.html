@@ -96,32 +96,51 @@
     .pi-nav.right { right: 7px; }
     .pi-expand { position: absolute; top: 7px; right: 7px; background: rgba(0,0,0,.35); border: none; border-radius: var(--border-radius-md); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; opacity: 0; transition: opacity .15s; }
     .pc:hover .pi-expand { opacity: 1; }
-    .pb { padding: 12px 14px; }
-    .pn { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
-    .pd { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .pb { padding: 10px 14px 12px; }
+    .pn { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+    .pd { display: none; } /* description only shown on product detail page */
     .pf { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-    .price-cny { font-size: 17px; font-weight: 500; }
+    .price-cny { font-size: 16px; font-weight: 500; }
     .price-usd { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
-    .ab { font-size: 13px; padding: 6px 14px; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-secondary); background: transparent; cursor: pointer; white-space: nowrap; }
+    .ab { font-size: 12px; padding: 5px 12px; border-radius: var(--border-radius-md); border: .5px solid var(--color-border-secondary); background: transparent; cursor: pointer; white-space: nowrap; }
     .ab:hover { background: var(--color-background-secondary); }
 
-    /* ── Fullscreen product modal ── */
-    .prod-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-    .prod-modal { background: var(--color-background-primary); border-radius: var(--border-radius-lg); width: 100%; max-width: 860px; max-height: 92vh; overflow-y: auto; box-shadow: 0 16px 60px rgba(0,0,0,.25); display: flex; flex-direction: column; }
-    .prod-modal-gallery { position: relative; width: 100%; background: var(--color-background-secondary); border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0; overflow: hidden; }
-    .prod-modal-main-img { width: 100%; height: 420px; object-fit: cover; display: block; }
-    .prod-modal-main-emoji { width: 100%; height: 320px; display: flex; align-items: center; justify-content: center; font-size: 110px; }
-    .prod-modal-thumbs { display: flex; gap: 8px; padding: 10px 14px; background: var(--color-background-secondary); border-top: .5px solid var(--color-border-tertiary); overflow-x: auto; }
-    .prod-modal-thumb { width: 64px; height: 64px; border-radius: 6px; object-fit: cover; cursor: pointer; border: 2px solid transparent; flex-shrink: 0; transition: border-color .15s; }
-    .prod-modal-thumb.on { border-color: var(--color-text-primary); }
-    .prod-modal-thumb-emoji { width: 64px; height: 64px; border-radius: 6px; background: var(--color-background-primary); display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; border: 2px solid transparent; flex-shrink: 0; transition: border-color .15s; }
-    .prod-modal-thumb-emoji.on { border-color: var(--color-text-primary); }
-    .gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,.4); border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; z-index: 2; transition: background .15s; }
-    .gallery-nav:hover { background: rgba(0,0,0,.65); }
-    .gallery-nav.prev { left: 12px; }
-    .gallery-nav.next { right: 12px; }
-    .gallery-counter { position: absolute; bottom: 80px; right: 14px; background: rgba(0,0,0,.45); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
-    .prod-modal-body { padding: 1.5rem 1.75rem 1.75rem; }
+    /* ── Full-page product detail view ── */
+    .pdp { display: none; }
+    .pdp.active { display: block; }
+    .pdp-top-bar { display: flex; align-items: center; gap: 12px; padding: 14px 1.5rem; border-bottom: .5px solid var(--color-border-tertiary); background: var(--color-background-primary); position: sticky; top: 57px; z-index: 40; }
+    .pdp-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; background: none; border: none; padding: 0; }
+    .pdp-back:hover { color: var(--color-text-primary); }
+    .pdp-breadcrumb { font-size: 13px; color: var(--color-text-secondary); }
+    .pdp-layout { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 120px); }
+    .pdp-gallery-col { position: sticky; top: 104px; height: calc(100vh - 104px); background: var(--color-background-secondary); display: flex; flex-direction: column; overflow: hidden; }
+    .pdp-main-img-wrap { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--color-background-secondary); }
+    .pdp-main-img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 2rem; }
+    .pdp-main-emoji { font-size: 120px; }
+    .pdp-thumbs { display: flex; gap: 8px; padding: 12px 16px; background: var(--color-background-primary); border-top: .5px solid var(--color-border-tertiary); overflow-x: auto; flex-shrink: 0; }
+    .pdp-thumb { width: 72px; height: 72px; border-radius: 6px; object-fit: cover; cursor: pointer; border: 2px solid transparent; flex-shrink: 0; transition: border-color .15s; background: var(--color-background-secondary); }
+    .pdp-thumb.on { border-color: var(--color-text-primary); }
+    .pdp-gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,.35); border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; z-index: 2; transition: background .15s; }
+    .pdp-gallery-nav:hover { background: rgba(0,0,0,.6); }
+    .pdp-gallery-nav.prev { left: 14px; }
+    .pdp-gallery-nav.next { right: 14px; }
+    .pdp-img-counter { position: absolute; bottom: 14px; right: 14px; background: rgba(0,0,0,.4); color: #fff; font-size: 11px; padding: 3px 10px; border-radius: 999px; }
+    .pdp-info-col { padding: 3rem 2.5rem 3rem; overflow-y: auto; }
+    .pdp-name { font-size: 28px; font-weight: 500; letter-spacing: -.5px; margin-bottom: 8px; line-height: 1.25; }
+    .pdp-price-cny { font-size: 26px; font-weight: 500; }
+    .pdp-price-usd { font-size: 13px; color: var(--color-text-secondary); margin-top: 3px; }
+    .pdp-divider { height: .5px; background: var(--color-border-tertiary); margin: 1.5rem 0; }
+    .pdp-desc { font-size: 14px; color: var(--color-text-secondary); line-height: 1.75; margin-bottom: 1.5rem; }
+    .pdp-variant-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .pdp-add-btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 14px; background: var(--color-text-primary); color: var(--color-background-primary); border: none; border-radius: var(--border-radius-md); font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 1.5rem; transition: opacity .15s; }
+    .pdp-add-btn:hover { opacity: .85; }
+    .pdp-add-btn:active { transform: scale(.99); }
+    @media (max-width: 700px) {
+      .pdp-layout { grid-template-columns: 1fr; }
+      .pdp-gallery-col { position: relative; top: 0; height: 62vw; min-height: 260px; }
+      .pdp-info-col { padding: 1.5rem 1.25rem 2rem; }
+      .pdp-name { font-size: 22px; }
+    }
     .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-bottom: 4px; font-weight: 500; background: #EAF3DE; color: #3B6D11; }
 
     .cart-drawer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-background-primary); border-top: 1px solid var(--color-border-secondary); padding: 1.25rem 1.5rem; max-height: 70vh; overflow-y: auto; z-index: 100; box-shadow: 0 -4px 24px rgba(0,0,0,.08); }
@@ -341,6 +360,7 @@
 
 <div id="cart-overlay" class="cart-overlay" style="display:none" onclick="closeCart()"></div>
 <div id="cart-drawer" class="cart-drawer" style="display:none"></div>
+<div id="pdp" class="pdp"></div>
 <div id="root"></div>
 
 <script>
@@ -697,10 +717,19 @@ function rNav(){
 }
 
 let vw='shop';
-function go(v){vw=v;closeCart();editingRefId=null;editingProdId=null;if(v==='shop')selectedVariants={};rNav();render();}
+function go(v){vw=v;closeCart();editingRefId=null;editingProdId=null;if(v==='shop'){selectedVariants={};document.onkeydown=null;}
+  // Hide/show pdp vs root
+  const pdpEl=document.getElementById('pdp');const rootEl=document.getElementById('root');
+  if(v.startsWith('pdp:')){
+    if(pdpEl)pdpEl.classList.add('active');if(rootEl)rootEl.style.display='none';
+  } else {
+    if(pdpEl){pdpEl.classList.remove('active');pdpEl.innerHTML='';}if(rootEl)rootEl.style.display='';
+  }
+  rNav();render();}
 function render(){
   const r=document.getElementById('root');
   if(vw==='shop')rShop(r);else if(vw==='checkout')rCheckout(r);else if(vw==='reg')rReg(r);else if(vw==='login')rLogin(r);else if(vw==='acc')rAcc(r);else if(vw==='admin-login')rAdmLogin(r);else if(vw==='admin')rAdm(r);
+  else if(vw.startsWith('pdp:')){const id=vw.slice(4);rPDP(id);}
 }
 
 function rShop(r){
@@ -830,94 +859,100 @@ function selVar(pid,vid){
   const priceEl=document.getElementById('pc-price-'+pid);
   if(priceEl){priceEl.textContent=cny(price);priceEl.dataset.usd=price;}
 }
-let modalImgIdx={};
-function viewProduct(id){
-  const p=db.products.find(x=>x.id===id&&x.active);if(!p)return;
-  const existing=document.getElementById('prod-modal-overlay');if(existing){document.removeEventListener('keydown',existing._kh);existing.remove();}
-  const overlay=document.createElement('div');overlay.id='prod-modal-overlay';overlay.className='prod-modal-overlay';
-  overlay.onclick=function(e){if(e.target===overlay){document.removeEventListener('keydown',overlay._kh);overlay.remove();}};
+function viewProduct(id){go('pdp:'+id);}
+
+let pdpImgIdx={};
+function rPDP(id){
+  const p=db.products.find(x=>x.id===id&&x.active);
+  const el=document.getElementById('pdp');
+  if(!p){el.innerHTML='<div style="padding:4rem;text-align:center;color:var(--color-text-secondary)">Product not found.</div>';return;}
   const tag=pTag(p);const desc=pDesc(p);const name=pName(p);
   const vs=p.variants||[];
   const selVid=selectedVariants[p.id]||(vs.length?vs[0].id:'');
   const selV=vs.find(v=>v.id===selVid)||vs[0]||null;
   const price=vPrice(p,selV);
-  const varSection=vs.length>1?`
-    <div style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">${lang==='en'?'Choose variant':lang==='zht'?'選擇規格':'选择规格'}</div>
-      <div class="vsel" id="modal-vs-${p.id}">${vs.map(v=>`<button class="vpill vpill-modal${v.id===selVid?' on':''}" onclick="selVarModal('${p.id}','${v.id}')">${vName(v)}${v.priceDelta?` +$${v.priceDelta.toFixed(2)}`:''}</button>`).join('')}</div>
-    </div>`:(vs.length===1?`<div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">${vName(vs[0])}</div>`:'');
   const imgs=getAllImgs(p);
-  if(!modalImgIdx[p.id])modalImgIdx[p.id]=0;
-  const idx=modalImgIdx[p.id];
+  if(pdpImgIdx[id]===undefined)pdpImgIdx[id]=0;
+  const idx=pdpImgIdx[id];
+
+  // Gallery column
   let galleryHtml;
   if(imgs.length){
-    const navBtns=imgs.length>1?`
-      <button class="gallery-nav prev" onclick="slideModal('${p.id}',-1)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 2L5 7l4 5"/></svg></button>
-      <button class="gallery-nav next" onclick="slideModal('${p.id}',1)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 2l4 5-4 5"/></svg></button>
-      <div class="gallery-counter">${idx+1} / ${imgs.length}</div>`:'';
-    const thumbs=imgs.length>1?`<div class="prod-modal-thumbs">${imgs.map((src,i)=>`<img src="${src}" class="prod-modal-thumb${i===idx?' on':''}" onclick="slideModal('${p.id}',${i},true)">`).join('')}</div>`:'';
-    galleryHtml=`<div class="prod-modal-gallery" id="modal-gallery-${p.id}">
-      <img class="prod-modal-main-img" id="modal-main-img-${p.id}" src="${imgs[idx]}" alt="${name}">
-      ${navBtns}${thumbs}
-    </div>`;
+    const nav=imgs.length>1?`
+      <button class="pdp-gallery-nav prev" onclick="pdpSlide('${id}',-1)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 2L5 7l4 5"/></svg></button>
+      <button class="pdp-gallery-nav next" onclick="pdpSlide('${id}',1)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 2l4 5-4 5"/></svg></button>
+      ${imgs.length>1?`<div class="pdp-img-counter" id="pdp-counter-${id}">${idx+1} / ${imgs.length}</div>`:''}`:'' ;
+    const thumbsHtml=imgs.length>1?`<div class="pdp-thumbs">${imgs.map((src,i)=>`<img src="${src}" class="pdp-thumb${i===idx?' on':''}" onclick="pdpSlide('${id}',${i},true)">`).join('')}</div>`:'';
+    galleryHtml=`<div class="pdp-main-img-wrap" id="pdp-gallery-${id}">
+      <img class="pdp-main-img" id="pdp-main-img-${id}" src="${imgs[idx]}" alt="${name}">
+      ${nav}
+    </div>${thumbsHtml}`;
   } else {
-    galleryHtml=`<div class="prod-modal-gallery"><div class="prod-modal-main-emoji">${p.icon||'📦'}</div></div>`;
+    galleryHtml=`<div class="pdp-main-img-wrap"><div class="pdp-main-emoji">${p.icon||'📦'}</div></div>`;
   }
-  overlay.innerHTML=`<div class="prod-modal">
-    ${galleryHtml}
-    <div class="prod-modal-body">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
-        <div>
-          ${tag?`<span class="tag" style="margin-bottom:6px;display:inline-block">${tag}</span>`:''}
-          <div style="font-size:22px;font-weight:500;letter-spacing:-.3px">${name}</div>
+
+  // Variants
+  const varSection=vs.length>1?`
+    <div style="margin-bottom:1.25rem">
+      <div class="pdp-variant-label">${lang==='en'?'Choose variant':lang==='zht'?'選擇規格':'选择规格'}</div>
+      <div class="vsel" id="pdp-vs-${id}">${vs.map(v=>`<button class="vpill vpill-modal${v.id===selVid?' on':''}" onclick="pdpSelVar('${id}','${v.id}')">${vName(v)}${v.priceDelta?` +$${v.priceDelta.toFixed(2)}`:''}</button>`).join('')}</div>
+    </div>`:(vs.length===1?`<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem">${vName(vs[0])}</div>`:'');
+
+  el.innerHTML=`
+    <div class="pdp-top-bar">
+      <button class="pdp-back" onclick="go('shop')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 2L4 7l5 5"/></svg>
+        ${lang==='en'?'Back to shop':lang==='zht'?'返回商店':'返回商店'}
+      </button>
+      <span style="color:var(--color-border-primary);font-size:13px">·</span>
+      <span class="pdp-breadcrumb">${name}</span>
+    </div>
+    <div class="pdp-layout">
+      <div class="pdp-gallery-col">${galleryHtml}</div>
+      <div class="pdp-info-col">
+        ${tag?`<div style="margin-bottom:10px"><span class="tag" style="font-size:12px;padding:3px 10px">${tag}</span></div>`:''}
+        <div class="pdp-name">${name}</div>
+        <div style="margin-top:10px">
+          <div class="pdp-price-cny" id="pdp-price-${id}" data-usd="${price}">${cny(price)}</div>
+          <div class="pdp-price-usd" id="pdp-price-usd-${id}">$${price.toFixed(2)} USD</div>
         </div>
-        <button onclick="document.removeEventListener('keydown',document.getElementById('prod-modal-overlay')._kh);document.getElementById('prod-modal-overlay').remove()" style="background:none;border:none;cursor:pointer;font-size:24px;color:var(--color-text-secondary);line-height:1;padding:0;flex-shrink:0">×</button>
-      </div>
-      ${desc?`<div style="font-size:14px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:12px">${desc}</div>`:''}
-      ${varSection}
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:.5px solid var(--color-border-tertiary)">
-        <div>
-          <div style="font-size:24px;font-weight:500" id="modal-price-${p.id}" data-usd="${price}">${cny(price)}</div>
-          <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px" id="modal-price-usd-${p.id}">$${price.toFixed(2)} USD</div>
-        </div>
-        <button class="btn p" style="padding:10px 26px;font-size:15px" id="modal-add-btn-${p.id}" onclick="addC('${p.id}');document.removeEventListener('keydown',document.getElementById('prod-modal-overlay')._kh);document.getElementById('prod-modal-overlay').remove()">
+        <div class="pdp-divider"></div>
+        ${desc?`<div class="pdp-desc">${desc}</div>`:''}
+        ${varSection}
+        <button class="pdp-add-btn" onclick="addC('${id}');pdpAddFeedback(this)">
           ${t('addToCart')}
         </button>
+        <div id="pdp-msg-${id}" style="margin-top:10px"></div>
       </div>
-    </div>
-  </div>`;
-  overlay._kh=function(e){if(e.key==='Escape'){document.removeEventListener('keydown',overlay._kh);overlay.remove();}else if(e.key==='ArrowLeft')slideModal(p.id,-1);else if(e.key==='ArrowRight')slideModal(p.id,1);};
-  document.addEventListener('keydown',overlay._kh);
-  document.body.appendChild(overlay);
+    </div>`;
+  window.scrollTo(0,0);
+  // Keyboard nav
+  document.onkeydown=function(e){if(e.key==='ArrowLeft')pdpSlide(id,-1);else if(e.key==='ArrowRight')pdpSlide(id,1);};
 }
-function slideModal(pid,val,abs){
-  const p=db.products.find(x=>x.id===pid);if(!p)return;
+function pdpSlide(id,val,abs){
+  const p=db.products.find(x=>x.id===id);if(!p)return;
   const imgs=getAllImgs(p);if(!imgs.length)return;
-  let idx=modalImgIdx[pid]||0;
+  let idx=pdpImgIdx[id]||0;
   if(abs)idx=val;else idx=(idx+val+imgs.length)%imgs.length;
-  modalImgIdx[pid]=idx;
-  const mainImg=document.getElementById('modal-main-img-'+pid);if(mainImg)mainImg.src=imgs[idx];
-  const thumbs=document.querySelectorAll(`#modal-gallery-${pid} .prod-modal-thumb`);
-  thumbs.forEach((th,i)=>th.classList.toggle('on',i===idx));
-  const counter=document.querySelector(`#modal-gallery-${pid} .gallery-counter`);
-  if(counter)counter.textContent=`${idx+1} / ${imgs.length}`;
+  pdpImgIdx[id]=idx;
+  const mainImg=document.getElementById('pdp-main-img-'+id);if(mainImg)mainImg.src=imgs[idx];
+  document.querySelectorAll(`#pdp-gallery-${id} ~ .pdp-thumbs .pdp-thumb`).forEach((th,i)=>th.classList.toggle('on',i===idx));
+  // also select thumbs inside the parent layout
+  document.querySelectorAll('.pdp-thumb').forEach((th,i)=>th.classList.toggle('on',i===idx));
+  const ctr=document.getElementById('pdp-counter-'+id);if(ctr)ctr.textContent=`${idx+1} / ${imgs.length}`;
 }
-function selVarModal(pid,vid){
-  selectedVariants[pid]=vid;
-  const p=db.products.find(x=>x.id===pid);if(!p)return;
-  const vs=p.variants||[];
-  const selV=vs.find(v=>v.id===vid)||null;
+function pdpSelVar(id,vid){
+  selectedVariants[id]=vid;
+  const p=db.products.find(x=>x.id===id);if(!p)return;
+  const vs=p.variants||[];const selV=vs.find(v=>v.id===vid)||null;
   const price=vPrice(p,selV);
-  // update modal pills
-  const cont=document.getElementById('modal-vs-'+pid);
-  if(cont)cont.querySelectorAll('.vpill').forEach(b=>{b.classList.toggle('on',b.textContent.startsWith(vName(selV)));});
-  // update price
-  const priceEl=document.getElementById('modal-price-'+pid);
-  if(priceEl){priceEl.textContent=cny(price);priceEl.dataset.usd=price;}
-  const priceUsdEl=document.getElementById('modal-price-usd-'+pid);
-  if(priceUsdEl)priceUsdEl.textContent='$'+price.toFixed(2)+' USD';
-  // also sync card selection
-  selVar(pid,vid);
+  document.querySelectorAll(`#pdp-vs-${id} .vpill`).forEach(b=>b.classList.toggle('on',b.textContent.trim().startsWith(vName(selV))));
+  const pe=document.getElementById('pdp-price-'+id);if(pe){pe.textContent=cny(price);pe.dataset.usd=price;}
+  const pu=document.getElementById('pdp-price-usd-'+id);if(pu)pu.textContent='$'+price.toFixed(2)+' USD';
+}
+function pdpAddFeedback(btn){
+  const orig=btn.textContent;btn.textContent=lang==='en'?'Added ✓':lang==='zht'?'已加入 ✓':'已加入 ✓';btn.style.opacity='.7';
+  setTimeout(()=>{btn.textContent=orig;btn.style.opacity='';},1200);
 }
 
 function addC(id){
