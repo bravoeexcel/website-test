@@ -563,9 +563,10 @@ let db={
     {id:'r1',name:'陈志远',address:'广州市天河区',country:'中国',phone:'138-0001-0001',iMemberNo:'IH-10001',email:'chen@example.com',code:'CHEN-R1',note:'South China region',active:true,alipayQr:'',wechatQr:''},
     {id:'r2',name:'Lin Xiaoyan',address:'Pudong, Shanghai',country:'China',phone:'139-0002-0002',iMemberNo:'IH-10002',email:'lin@example.com',code:'LIN-R2',note:'Online channel',active:true,alipayQr:'',wechatQr:''},
   ],
-  users:[],cur:null,adm:false,adminEmail:'',adminPassword:''
+  users:[],cur:null,adm:false,adminEmail:'bravoeexcel@gmail.com',adminPassword:'admin123',adminCreated:true
 };
-try{const s=localStorage.getItem('netiva_shop');if(s){const p=JSON.parse(s);db={...db,...p};if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
+try{const s=localStorage.getItem('netiva_shop');if(s){const p=JSON.parse(s);db={...db,...p};if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;// Always ensure credentials are set — fall back to defaults if somehow blank
+if(!db.adminEmail)db.adminEmail='bravoeexcel@gmail.com';if(!db.adminPassword)db.adminPassword='admin123';db.adminCreated=true;}}catch(e){}
 function sv(){try{db.feeRate=FEE_RATE;localStorage.setItem('netiva_shop',JSON.stringify(db));}catch(e){}}
 
 function pName(p){return (lang==='zh'||lang==='zht')?(p.name_zh||p.name_en||''):(p.name_en||p.name_zh||'');}
@@ -884,16 +885,6 @@ function saveA(){const n=document.getElementById('en').value.trim(),e=document.g
 function doLO(){db.cur=null;sv();cart=[];go('shop');}
 
 function rAdmLogin(r){
-  // Only show setup if NO admin has EVER been created
-  if(!db.adminPassword && !db.adminCreated){
-    r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('setupAdmin')}</h2><div class="msub">${t('setupAdminSub')}</div><div id="alm"></div><div class="fl"><label>${t('adminEmail')}</label><input type="email" id="a-email" placeholder="${t('adminEmailPlaceholder')}"></div><div class="fl"><label>${t('adminPassword')}</label><input type="password" id="a-pw" oninput="ckAS(this.value)"><div class="sb" id="a-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="a-pw2"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:4px" onclick="doAdmSetup()">${t('createAdminBtn')}</button><div class="sw"><a onclick="go('shop')">${t('backToShop')}</a></div></div></div>`;
-    return;
-  }
-  // If adminCreated is set but password is missing (shouldn't happen), show locked message
-  if(db.adminCreated && !db.adminPassword){
-    r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('adminPanel')}</h2><div class="m e" style="margin-bottom:12px">${lang==='en'?'Admin account already exists. Please sign in.':lang==='zht'?'管理員帳戶已存在，請登入。':'管理员账户已存在，请登录。'}</div><div id="alm"></div><div class="fl"><label>${t('adminEmail')}</label><input type="email" id="a-email" placeholder="${t('adminEmailPlaceholder')}" onkeydown="if(event.key==='Enter')doAdm()"></div><div class="fl"><label>${t('adminPassword')}</label><input type="password" id="a-pw" onkeydown="if(event.key==='Enter')doAdm()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doAdm()">${t('enterAdmin')}</button><div class="sw"><a onclick="go('shop')">${t('backToShop')}</a></div></div></div>`;
-    return;
-  }
   r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('adminPanel')}</h2><div class="msub">${t('adminOnly')}</div><div id="alm"></div><div class="fl"><label>${t('adminEmail')}</label><input type="email" id="a-email" placeholder="${t('adminEmailPlaceholder')}" onkeydown="if(event.key==='Enter')doAdm()"></div><div class="fl"><label>${t('adminPassword')}</label><input type="password" id="a-pw" onkeydown="if(event.key==='Enter')doAdm()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doAdm()">${t('enterAdmin')}</button><div class="sw"><a onclick="go('shop')">${t('backToShop')}</a></div></div></div>`;
 }
 function ckAS(pw){const b=document.getElementById('a-sb');if(!b)return;let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
