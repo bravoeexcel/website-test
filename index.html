@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harvest — Fresh from the source</title>
+  <title>Netiva — Fresh from the source</title>
   <style>
     /* Reset & base */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,7 +28,6 @@
 
     .nav { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1.5rem; border-bottom: .5px solid var(--color-border-tertiary); background: var(--color-background-primary); gap: 8px; position: sticky; top: 0; z-index: 50; }
     .logo { font-size: 18px; font-weight: 500; cursor: pointer; letter-spacing: -.4px; flex-shrink: 0; }
-    .logo-img { height: 32px; max-width: 140px; object-fit: contain; display: block; cursor: pointer; }
     .nav-c { display: flex; gap: 1.5rem; }
     .nav-c a { font-size: 13px; color: var(--color-text-secondary); cursor: pointer; text-decoration: none; }
     .nav-c a:hover { color: var(--color-text-primary); }
@@ -140,7 +139,26 @@
 
     .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
     .dot.g { background: #639922; } .dot.r { background: #E24B4A; }
+
+    /* Variant selector */
+    .vsel { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0 8px; }
+    .vpill { padding: 3px 10px; border-radius: 999px; font-size: 11px; cursor: pointer; border: .5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); white-space: nowrap; }
+    .vpill:hover { border-color: var(--color-border-primary); color: var(--color-text-primary); }
+    .vpill.on { background: var(--color-text-primary); color: var(--color-background-primary); border-color: transparent; }
+    .vpill-modal { padding: 6px 14px; font-size: 13px; }
+    /* Variant admin row */
+    .var-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--color-background-primary); border: .5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); margin-bottom: 5px; }
+    .var-row input { flex: 1; min-width: 0; }
     .code { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); border: .5px solid var(--color-border-secondary); border-radius: 6px; padding: 2px 8px; letter-spacing: .5px; }
+
+    /* Product detail modal */
+    .prod-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .prod-modal { background: var(--color-background-primary); border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.15); }
+    .prod-modal-img { width: 100%; height: 240px; object-fit: cover; display: block; border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0; }
+    .prod-modal-emoji { width: 100%; height: 180px; display: flex; align-items: center; justify-content: center; font-size: 72px; background: var(--color-background-secondary); border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0; }
+    .prod-modal-body { padding: 1.25rem 1.5rem 1.5rem; }
+    .pc { cursor: pointer; transition: transform .15s; }
+    .pc:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.07); }
 
     .checkout-page { max-width: 480px; margin: 2rem auto; padding: 0 1.5rem; }
     .pay-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: none; margin-bottom: 10px; }
@@ -233,7 +251,7 @@
 <body>
 
 <nav class="nav">
-  <span class="logo" id="site-logo" onclick="go('shop')">Harvest</span>
+  <span class="logo" onclick="go('shop')">Netiva</span>
 
   <!-- Always-visible right side: rate chip, language, then desktop-only links + hamburger -->
   <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
@@ -314,7 +332,7 @@ const T={
     password:'Password',confirmPassword:'Confirm Password',createAccount:'Create Account',
     alreadyHave:'Already have an account?',signInHere:'Sign in here',
     noAccount:"Don't have an account?",registerHere:'Register here',
-    welcomeBack:'Welcome back to Harvest',signInBtn:'Sign In',
+    welcomeBack:'Welcome back to Netiva',signInBtn:'Sign In',
     refBy:'Referred by',joined:'Member since',orders:'Orders',
     saveChanges:'Save Changes',backToShop:'← Back to shop',
     orderSummary:'Order Summary',paymentMethod:'Select Payment Method',
@@ -388,7 +406,7 @@ const T={
     password:'密码',confirmPassword:'确认密码',createAccount:'创建账户',
     alreadyHave:'已有账户？',signInHere:'立即登录',
     noAccount:'还没有账户？',registerHere:'持推荐码注册',
-    welcomeBack:'欢迎回到 Harvest',signInBtn:'登录',
+    welcomeBack:'欢迎回到 Netiva',signInBtn:'登录',
     refBy:'推荐人',joined:'注册时间',orders:'订单数量',
     saveChanges:'保存更改',backToShop:'← 返回商店',
     orderSummary:'确认订单',paymentMethod:'选择付款方式',
@@ -462,7 +480,7 @@ const T={
     password:'密碼',confirmPassword:'確認密碼',createAccount:'建立帳戶',
     alreadyHave:'已有帳戶？',signInHere:'立即登入',
     noAccount:'還沒有帳戶？',registerHere:'持推薦碼註冊',
-    welcomeBack:'歡迎回到 Harvest',signInBtn:'登入',
+    welcomeBack:'歡迎回到 Netiva',signInBtn:'登入',
     refBy:'推薦人',joined:'註冊時間',orders:'訂單數量',
     saveChanges:'儲存變更',backToShop:'← 返回商店',
     orderSummary:'確認訂單',paymentMethod:'選擇付款方式',
@@ -527,12 +545,15 @@ function t(k){return (T[lang]&&T[lang][k])||T.en[k]||k;}
 const CATS_KEY={all:'allCats',pantry:'pantry',drinks:'drinks',snacks:'snacks',fresh:'fresh'};
 
 const DEFAULT_PRODS=[
-  {id:'p1',name_en:'Wildflower Honey',name_zh:'野花蜂蜜',desc_en:'Raw & unfiltered, 350g',desc_zh:'原味未过滤 350g',usdPrice:12.50,icon:'🍯',tag_en:'Organic',tag_zh:'有机',category:'pantry',img:'',active:true},
-  {id:'p2',name_en:'Cold Brew Coffee',name_zh:'冷萃咖啡',desc_en:'Single origin, 500ml',desc_zh:'单一产地 500ml',usdPrice:8.00,icon:'☕',tag_en:'',tag_zh:'',category:'drinks',img:'',active:true},
-  {id:'p3',name_en:'Almond Butter',name_zh:'杏仁黄油',desc_en:'Stone-ground roasted, 250g',desc_zh:'石磨烘焙 250g',usdPrice:10.00,icon:'🥜',tag_en:'Vegan',tag_zh:'纯素',category:'pantry',img:'',active:true},
-  {id:'p4',name_en:'Mixed Berry Jam',name_zh:'混合果酱',desc_en:'No added sugar, 300g',desc_zh:'无添加糖 300g',usdPrice:7.50,icon:'🫐',tag_en:'Organic',tag_zh:'有机',category:'pantry',img:'',active:true},
-  {id:'p5',name_en:'Dark Chocolate',name_zh:'黑巧克力',desc_en:'75% cacao, 100g',desc_zh:'75%可可 100g',usdPrice:5.00,icon:'🍫',tag_en:'',tag_zh:'',category:'snacks',img:'',active:true},
-  {id:'p6',name_en:'Extra Virgin Olive Oil',name_zh:'特级橄榄油',desc_en:'Cold pressed, 500ml',desc_zh:'冷压初榨 500ml',usdPrice:16.00,icon:'🫒',tag_en:'',tag_zh:'',category:'pantry',img:'',active:true},
+  {id:'p1',name_en:'Wildflower Honey',name_zh:'野花蜂蜜',desc_en:'Raw & unfiltered',desc_zh:'原味未过滤',usdPrice:12.50,icon:'🍯',tag_en:'Organic',tag_zh:'有机',category:'pantry',img:'',active:true,
+    variants:[{id:'v1a',name_en:'350g',name_zh:'350克',priceDelta:0},{id:'v1b',name_en:'700g',name_zh:'700克',priceDelta:10},{id:'v1c',name_en:'1kg',name_zh:'1千克',priceDelta:18}]},
+  {id:'p2',name_en:'Cold Brew Coffee',name_zh:'冷萃咖啡',desc_en:'Single origin',desc_zh:'单一产地',usdPrice:8.00,icon:'☕',tag_en:'',tag_zh:'',category:'drinks',img:'',active:true,
+    variants:[{id:'v2a',name_en:'500ml',name_zh:'500毫升',priceDelta:0},{id:'v2b',name_en:'1L',name_zh:'1升',priceDelta:6}]},
+  {id:'p3',name_en:'Almond Butter',name_zh:'杏仁黄油',desc_en:'Stone-ground roasted, 250g',desc_zh:'石磨烘焙 250g',usdPrice:10.00,icon:'🥜',tag_en:'Vegan',tag_zh:'纯素',category:'pantry',img:'',active:true,variants:[]},
+  {id:'p4',name_en:'Mixed Berry Jam',name_zh:'混合果酱',desc_en:'No added sugar, 300g',desc_zh:'无添加糖 300g',usdPrice:7.50,icon:'🫐',tag_en:'Organic',tag_zh:'有机',category:'pantry',img:'',active:true,variants:[]},
+  {id:'p5',name_en:'Dark Chocolate',name_zh:'黑巧克力',desc_en:'75% cacao',desc_zh:'75%可可',usdPrice:5.00,icon:'🍫',tag_en:'',tag_zh:'',category:'snacks',img:'',active:true,
+    variants:[{id:'v5a',name_en:'Original',name_zh:'原味',priceDelta:0},{id:'v5b',name_en:'Sea Salt',name_zh:'海盐',priceDelta:0},{id:'v5c',name_en:'Chili',name_zh:'辣椒',priceDelta:0}]},
+  {id:'p6',name_en:'Extra Virgin Olive Oil',name_zh:'特级橄榄油',desc_en:'Cold pressed, 500ml',desc_zh:'冷压初榨 500ml',usdPrice:16.00,icon:'🫒',tag_en:'',tag_zh:'',category:'pantry',img:'',active:true,variants:[]},
 ];
 
 let db={
@@ -543,27 +564,16 @@ let db={
   ],
   users:[],cur:null,adm:false,adminEmail:'',adminPassword:''
 };
-try{const s=localStorage.getItem('harvest_shop');if(s){const p=JSON.parse(s);db={...db,...p};if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
-function sv(){try{db.feeRate=FEE_RATE;localStorage.setItem('harvest_shop',JSON.stringify(db));}catch(e){}}
-function renderLogo(){
-  const el=document.getElementById('site-logo');
-  if(!el)return;
-  if(db.logoImage){
-    el.innerHTML=`<img src="${db.logoImage}" class="logo-img" onclick="go('shop')" alt="logo">`;
-    el.style.fontSize='';
-    el.style.fontWeight='';
-  } else {
-    el.innerHTML='';
-    el.textContent=db.logoText||'Harvest';
-    el.style.fontSize='18px';
-    el.style.fontWeight='500';
-  }
-}
-renderLogo();
+try{const s=localStorage.getItem('netiva_shop');if(s){const p=JSON.parse(s);db={...db,...p};if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
+function sv(){try{db.feeRate=FEE_RATE;localStorage.setItem('netiva_shop',JSON.stringify(db));}catch(e){}}
 
 function pName(p){return (lang==='zh'||lang==='zht')?(p.name_zh||p.name_en||''):(p.name_en||p.name_zh||'');}
 function pDesc(p){return (lang==='zh'||lang==='zht')?(p.desc_zh||p.desc_en||''):(p.desc_en||p.desc_zh||'');}
 function pTag(p){return (lang==='zh'||lang==='zht')?(p.tag_zh||p.tag_en||''):(p.tag_en||p.tag_zh||'');}
+function vName(v){return (lang==='zh'||lang==='zht')?(v.name_zh||v.name_en||''):(v.name_en||v.name_zh||'');}
+function vPrice(p,v){return p.usdPrice+(v?v.priceDelta||0:0);}
+// selectedVariants: map of productId -> variantId (for shop card selections)
+let selectedVariants={};
 
 let cart=[],activeCat='all',editingRefId=null,editingProdId=null;
 
@@ -631,10 +641,10 @@ function renderCartDrawer(){
   const subCny=cnyN(totUsd),feeCny=calcFee(subCny),totalCny=calcTotal(subCny);
   drawer.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem"><span style="font-size:15px;font-weight:500">${t('cartTitle')}</span><button onclick="closeCart()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--color-text-secondary);line-height:1;padding:0">×</button></div>
     ${cart.length===0?`<div style="text-align:center;color:var(--color-text-secondary);padding:2rem;font-size:13px">${t('cartEmpty')}</div>`:''}
-    ${cart.map(i=>`<div style="display:flex;align-items:center;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary);gap:8px"><div style="width:32px;height:32px;border-radius:6px;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden">${i.img?`<img src="${i.img}" style="width:100%;height:100%;object-fit:cover">`:(i.icon||'📦')}</div><span style="flex:1;font-size:13px">${pName(i)}</span><div style="display:flex;align-items:center;gap:6px"><button onclick="changeQty('${i.id}',-1)" style="width:22px;height:22px;border-radius:50%;border:.5px solid var(--color-border-secondary);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">−</button><span style="font-size:13px;min-width:16px;text-align:center">${i.qty}</span><button onclick="changeQty('${i.id}',1)" style="width:22px;height:22px;border-radius:50%;border:.5px solid var(--color-border-secondary);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button></div><div style="text-align:right;min-width:60px"><div style="font-size:13px;font-weight:500">${cny(i.usdPrice*i.qty)}</div><div style="font-size:11px;color:var(--color-text-tertiary)">$${(i.usdPrice*i.qty).toFixed(2)}</div></div></div>`).join('')}
+    ${cart.map(i=>`<div style="display:flex;align-items:center;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary);gap:8px"><div style="width:32px;height:32px;border-radius:6px;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden">${i.img?`<img src="${i.img}" style="width:100%;height:100%;object-fit:cover">`:(i.icon||'📦')}</div><div style="flex:1;min-width:0"><div style="font-size:13px">${pName(i)}${i.variantName?`<span style="font-size:11px;color:var(--color-text-secondary);margin-left:4px">· ${i.variantName}</span>`:''}</div></div><div style="display:flex;align-items:center;gap:6px"><button onclick="changeQty('${i.cartKey}',-1)" style="width:22px;height:22px;border-radius:50%;border:.5px solid var(--color-border-secondary);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">−</button><span style="font-size:13px;min-width:16px;text-align:center">${i.qty}</span><button onclick="changeQty('${i.cartKey}',1)" style="width:22px;height:22px;border-radius:50%;border:.5px solid var(--color-border-secondary);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button></div><div style="text-align:right;min-width:60px"><div style="font-size:13px;font-weight:500">${cny(i.usdPrice*i.qty)}</div><div style="font-size:11px;color:var(--color-text-tertiary)">$${(i.usdPrice*i.qty).toFixed(2)}</div></div></div>`).join('')}
     ${cart.length>0?`<div style="margin-top:10px;font-size:13px"><div style="display:flex;justify-content:space-between;padding:5px 0;color:var(--color-text-secondary)"><span>${t('subtotal')}</span><span>¥${subCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:5px 0;color:#854F0B"><span>${t('fee')} <span style="background:#FAEEDA;color:#854F0B;border-radius:999px;font-size:11px;padding:1px 6px">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</span></span><span>¥${feeCny.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 0;border-top:.5px solid var(--color-border-tertiary);margin-top:4px"><span style="font-size:14px;font-weight:500">${t('total')}</span><div style="text-align:right"><div style="font-size:16px;font-weight:500">¥${totalCny.toFixed(2)}</div><div style="font-size:11px;color:var(--color-text-tertiary)">$${totUsd.toFixed(2)} USD</div></div></div></div><button class="btn p" style="width:100%;justify-content:center;margin-top:12px;padding:10px" onclick="closeCart();go('checkout')">${t('checkout')}</button>`:''}`;
 }
-function changeQty(id,delta){const ex=cart.find(x=>x.id===id);if(!ex)return;ex.qty+=delta;if(ex.qty<=0)cart=cart.filter(x=>x.id!==id);rNav();renderCartDrawer();}
+function changeQty(key,delta){const ex=cart.find(x=>x.cartKey===key);if(!ex)return;ex.qty+=delta;if(ex.qty<=0)cart=cart.filter(x=>x.cartKey!==key);rNav();renderCartDrawer();}
 
 function rNav(){
   const nr=document.getElementById('nr');if(!nr)return;
@@ -655,7 +665,7 @@ function rNav(){
 }
 
 let vw='shop';
-function go(v){vw=v;closeCart();editingRefId=null;editingProdId=null;rNav();render();}
+function go(v){vw=v;closeCart();editingRefId=null;editingProdId=null;if(v==='shop')selectedVariants={};rNav();render();}
 function render(){
   const r=document.getElementById('root');
   if(vw==='shop')rShop(r);else if(vw==='checkout')rCheckout(r);else if(vw==='reg')rReg(r);else if(vw==='login')rLogin(r);else if(vw==='acc')rAcc(r);else if(vw==='admin-login')rAdmLogin(r);else if(vw==='admin')rAdm(r);
@@ -734,12 +744,97 @@ function rShopProducts(){
   const grid=document.getElementById('mp');if(!grid)return;
   document.querySelectorAll('.fpill').forEach((b,i)=>{const val=Object.keys(CATS_KEY)[i];b.classList.toggle('on',val===activeCat);b.textContent=t(Object.values(CATS_KEY)[i]);});
   const filtered=activeCat==='all'?db.products.filter(p=>p.active):db.products.filter(p=>p.active&&p.category===activeCat);
-  grid.innerHTML=filtered.length===0?`<div style="grid-column:1/-1;text-align:center;color:var(--color-text-secondary);padding:3rem;font-size:13px">${t('noCatProds')}</div>`:filtered.map(p=>`<div class="pc"><div class="pi">${p.img?`<img src="${p.img}">`:(p.icon||'📦')}</div><div class="pb">${pTag(p)?`<span class="tag">${pTag(p)}</span>`:''}<div class="pn">${pName(p)}</div><div class="pd">${pDesc(p)}</div><div class="pf"><div><div class="price-cny" data-usd="${p.usdPrice}">${cny(p.usdPrice)}</div><div class="price-usd">$${p.usdPrice.toFixed(2)} USD</div></div><button class="ab" onclick="addC('${p.id}')">${t('addToCart')}</button></div></div></div>`).join('');
+  grid.innerHTML=filtered.length===0?`<div style="grid-column:1/-1;text-align:center;color:var(--color-text-secondary);padding:3rem;font-size:13px">${t('noCatProds')}</div>`:filtered.map(p=>{
+    const vs=p.variants||[];
+    const selVid=selectedVariants[p.id]||(vs.length?vs[0].id:'');
+    const selV=vs.find(v=>v.id===selVid)||vs[0]||null;
+    const price=vPrice(p,selV);
+    const varHtml=vs.length>1?`<div class="vsel" id="vs-${p.id}">${vs.map(v=>`<button class="vpill${v.id===selVid?' on':''}" onclick="event.stopPropagation();selVar('${p.id}','${v.id}')">${vName(v)}</button>`).join('')}</div>`:(vs.length===1?`<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:5px">${vName(vs[0])}</div>`:'');
+    return `<div class="pc" onclick="viewProduct('${p.id}')"><div class="pi">${p.img?`<img src="${p.img}">`:(p.icon||'📦')}</div><div class="pb">${pTag(p)?`<span class="tag">${pTag(p)}</span>`:''}<div class="pn">${pName(p)}</div><div class="pd">${pDesc(p)}</div>${varHtml}<div class="pf"><div><div class="price-cny" data-usd="${price}" id="pc-price-${p.id}">${cny(price)}</div><div class="price-usd">$${price.toFixed(2)} USD</div></div><button class="ab" onclick="event.stopPropagation();addC('${p.id}')">${t('addToCart')}</button></div></div></div>`;
+  }).join('');
 }
+function selVar(pid,vid){
+  selectedVariants[pid]=vid;
+  // Re-render just the variant pills and price in this card
+  const p=db.products.find(x=>x.id===pid);if(!p)return;
+  const vs=p.variants||[];
+  const selV=vs.find(v=>v.id===vid)||null;
+  const price=vPrice(p,selV);
+  // update pills
+  const cont=document.getElementById('vs-'+pid);
+  if(cont)cont.querySelectorAll('.vpill').forEach(b=>{b.classList.toggle('on',b.textContent===vName(selV));});
+  // update price
+  const priceEl=document.getElementById('pc-price-'+pid);
+  if(priceEl){priceEl.textContent=cny(price);priceEl.dataset.usd=price;}
+}
+function viewProduct(id){
+  const p=db.products.find(x=>x.id===id&&x.active);if(!p)return;
+  const existing=document.getElementById('prod-modal-overlay');if(existing)existing.remove();
+  const overlay=document.createElement('div');overlay.id='prod-modal-overlay';overlay.className='prod-modal-overlay';
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+  const tag=pTag(p);const desc=pDesc(p);const name=pName(p);
+  const vs=p.variants||[];
+  const selVid=selectedVariants[p.id]||(vs.length?vs[0].id:'');
+  const selV=vs.find(v=>v.id===selVid)||vs[0]||null;
+  const price=vPrice(p,selV);
+  const varSection=vs.length>1?`
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">${lang==='en'?'Choose variant':lang==='zht'?'選擇規格':'选择规格'}</div>
+      <div class="vsel" id="modal-vs-${p.id}">${vs.map(v=>`<button class="vpill vpill-modal${v.id===selVid?' on':''}" onclick="selVarModal('${p.id}','${v.id}')">${vName(v)}${v.priceDelta?` +$${v.priceDelta.toFixed(2)}`:''}</button>`).join('')}</div>
+    </div>`:(vs.length===1?`<div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">${vName(vs[0])}</div>`:'');
+  overlay.innerHTML=`<div class="prod-modal">
+    ${p.img?`<img class="prod-modal-img" src="${p.img}" alt="${name}">`:`<div class="prod-modal-emoji">${p.icon||'📦'}</div>`}
+    <div class="prod-modal-body">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
+        <div>
+          ${tag?`<span class="tag" style="margin-bottom:6px;display:inline-block">${tag}</span>`:''}
+          <div style="font-size:20px;font-weight:500;letter-spacing:-.3px">${name}</div>
+        </div>
+        <button onclick="document.getElementById('prod-modal-overlay').remove()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--color-text-secondary);line-height:1;padding:0;flex-shrink:0">×</button>
+      </div>
+      ${desc?`<div style="font-size:14px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:12px">${desc}</div>`:''}
+      ${varSection}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:.5px solid var(--color-border-tertiary)">
+        <div>
+          <div style="font-size:22px;font-weight:500" id="modal-price-${p.id}" data-usd="${price}">${cny(price)}</div>
+          <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px" id="modal-price-usd-${p.id}">$${price.toFixed(2)} USD</div>
+        </div>
+        <button class="btn p" style="padding:9px 22px;font-size:14px" id="modal-add-btn-${p.id}" onclick="addC('${p.id}');document.getElementById('prod-modal-overlay').remove()">
+          ${t('addToCart')}
+        </button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+function selVarModal(pid,vid){
+  selectedVariants[pid]=vid;
+  const p=db.products.find(x=>x.id===pid);if(!p)return;
+  const vs=p.variants||[];
+  const selV=vs.find(v=>v.id===vid)||null;
+  const price=vPrice(p,selV);
+  // update modal pills
+  const cont=document.getElementById('modal-vs-'+pid);
+  if(cont)cont.querySelectorAll('.vpill').forEach(b=>{b.classList.toggle('on',b.textContent.startsWith(vName(selV)));});
+  // update price
+  const priceEl=document.getElementById('modal-price-'+pid);
+  if(priceEl){priceEl.textContent=cny(price);priceEl.dataset.usd=price;}
+  const priceUsdEl=document.getElementById('modal-price-usd-'+pid);
+  if(priceUsdEl)priceUsdEl.textContent='$'+price.toFixed(2)+' USD';
+  // also sync card selection
+  selVar(pid,vid);
+}
+
 function addC(id){
   if(!db.cur){go('login');return;}
   const p=db.products.find(x=>x.id===id&&x.active);if(!p)return;
-  const ex=cart.find(x=>x.id===id);if(ex)ex.qty++;else cart.push({...p,qty:1});
+  const vs=p.variants||[];
+  const selVid=selectedVariants[p.id]||(vs.length?vs[0].id:'');
+  const selV=vs.find(v=>v.id===selVid)||null;
+  const cartKey=id+(selVid?'__'+selVid:'');
+  const price=vPrice(p,selV);
+  const ex=cart.find(x=>x.cartKey===cartKey);
+  if(ex){ex.qty++;}else{cart.push({...p,cartKey,usdPrice:price,variantId:selVid||null,variantName:selV?vName(selV):'',qty:1});}
   rNav();renderCartDrawer();
   const cnt=document.getElementById('cart-count');if(cnt){cnt.style.transform='scale(1.4)';setTimeout(()=>cnt.style.transform='',200);}
 }
@@ -750,7 +845,7 @@ function rCheckout(r){
   const totUsd=cart.reduce((s,i)=>s+i.usdPrice*i.qty,0);
   const subCny=cnyN(totUsd),feeCny=calcFee(subCny),totalCny=calcTotal(subCny);
   r.innerHTML=`<div class="checkout-page"><div style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem"><button class="btn sm" onclick="go('shop')">←</button><span style="font-size:17px;font-weight:500">${t('orderSummary')}</span></div>
-    <div class="order-box"><div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">${t('orderDetails')}</div>${cart.map(i=>`<div class="orow sub"><span>${i.icon||'📦'} ${pName(i)} <span style="font-size:11px">×${i.qty}</span></span><span>${cny(i.usdPrice*i.qty)}</span></div>`).join('')}<div style="border-top:.5px solid var(--color-border-tertiary);margin:8px 0"></div><div class="orow sub"><span>${t('subtotal')}</span><span>¥${subCny.toFixed(2)}</span></div><div class="orow fee"><span style="display:flex;align-items:center;gap:6px">${t('fee')}<span style="background:#FAEEDA;color:#854F0B;border-radius:999px;font-size:11px;padding:1px 7px">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</span></span><span>¥${feeCny.toFixed(2)}</span></div><div style="border-top:.5px solid var(--color-border-secondary);margin:8px 0"></div><div class="orow total"><span>${t('total')}</span><div style="text-align:right"><div>¥${totalCny.toFixed(2)}</div><div style="font-size:11px;color:var(--color-text-tertiary);font-weight:400">1 USD = ¥${rate.toFixed(4)}</div></div></div></div>
+    <div class="order-box"><div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">${t('orderDetails')}</div>${cart.map(i=>`<div class="orow sub"><span>${i.icon||'📦'} ${pName(i)}${i.variantName?` · <span style="font-size:11px">${i.variantName}</span>`:''} <span style="font-size:11px">×${i.qty}</span></span><span>${cny(i.usdPrice*i.qty)}</span></div>`).join('')}<div style="border-top:.5px solid var(--color-border-tertiary);margin:8px 0"></div><div class="orow sub"><span>${t('subtotal')}</span><span>¥${subCny.toFixed(2)}</span></div><div class="orow fee"><span style="display:flex;align-items:center;gap:6px">${t('fee')}<span style="background:#FAEEDA;color:#854F0B;border-radius:999px;font-size:11px;padding:1px 7px">${(FEE_RATE*100).toFixed(2).replace(/\.?0+$/,'')}%</span></span><span>¥${feeCny.toFixed(2)}</span></div><div style="border-top:.5px solid var(--color-border-secondary);margin:8px 0"></div><div class="orow total"><span>${t('total')}</span><div style="text-align:right"><div>¥${totalCny.toFixed(2)}</div><div style="font-size:11px;color:var(--color-text-tertiary);font-weight:400">1 USD = ¥${rate.toFixed(4)}</div></div></div></div>
     ${ref?`<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 12c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${t('payTo2')}: <strong>${ref.name}</strong></div>`:''}
     <div style="font-size:13px;font-weight:500;margin-bottom:10px">${t('paymentMethod')}</div>
     ${!ref?.alipayQr&&!ref?.wechatQr?`<div class="m w">${t('noQr')} <strong>${ref?.name||''}</strong>${t('noQrSuffix')}</div>`:''}
@@ -780,7 +875,7 @@ function rReg(r){
 }
 function ckRC(){const v=document.getElementById('rc').value.trim().toUpperCase(),h=document.getElementById('rch'),f=document.getElementById('rf');if(!v){h.textContent='';f.style.opacity='.4';f.style.pointerEvents='none';return;}const ref=refByCode(v);if(ref){h.style.color='#185FA5';h.innerHTML=`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:3px"><path d="M2 6l3 3 5-5" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>${t('validCode')} <strong>${ref.name}</strong>`;f.style.opacity='1';f.style.pointerEvents='auto';}else{h.style.color='#A32D2D';h.innerHTML=`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:3px"><path d="M3 3l6 6M9 3l-6 6" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round"/></svg>${t('invalidCode')}`;f.style.opacity='.4';f.style.pointerEvents='none';}}
 function ckS(pw){const b=document.getElementById('sb');if(!b)return;let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
-function doReg(){const code=document.getElementById('rc').value.trim().toUpperCase(),fn=document.getElementById('rfn').value.trim(),ln=document.getElementById('rln').value.trim(),em=document.getElementById('re').value.trim().toLowerCase(),pw=document.getElementById('rp').value,pw2=document.getElementById('rp2').value,msg=document.getElementById('rm');const ref=refByCode(code);if(!ref){msg.innerHTML=`<div class="m e">${t('errorInvalidCode')}</div>`;return;}if(!fn||!ln||!em||!pw||!pw2){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.innerHTML=`<div class="m e">${t('errorEmail')}</div>`;return;}if(pw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassLen')}</div>`;return;}if(pw!==pw2){msg.innerHTML=`<div class="m e">${t('errorPassMatch')}</div>`;return;}if(db.users.find(u=>u.email===em)){msg.innerHTML=`<div class="m e">${t('errorEmailTaken')}</div>`;return;}const u={id:'u'+Date.now(),name:fn+' '+ln,email:em,pass:pw,referrerId:ref.id,referrerName:ref.name,joined:new Date().toLocaleDateString(),orders:0};db.users.push(u);db.cur=u;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Account created! Welcome to Harvest.':(lang==='zht'?'帳戶建立成功！歡迎加入 Harvest。':'账户创建成功！欢迎加入 Harvest。')}</div>`;setTimeout(()=>go('shop'),900);}
+function doReg(){const code=document.getElementById('rc').value.trim().toUpperCase(),fn=document.getElementById('rfn').value.trim(),ln=document.getElementById('rln').value.trim(),em=document.getElementById('re').value.trim().toLowerCase(),pw=document.getElementById('rp').value,pw2=document.getElementById('rp2').value,msg=document.getElementById('rm');const ref=refByCode(code);if(!ref){msg.innerHTML=`<div class="m e">${t('errorInvalidCode')}</div>`;return;}if(!fn||!ln||!em||!pw||!pw2){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.innerHTML=`<div class="m e">${t('errorEmail')}</div>`;return;}if(pw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassLen')}</div>`;return;}if(pw!==pw2){msg.innerHTML=`<div class="m e">${t('errorPassMatch')}</div>`;return;}if(db.users.find(u=>u.email===em)){msg.innerHTML=`<div class="m e">${t('errorEmailTaken')}</div>`;return;}const u={id:'u'+Date.now(),name:fn+' '+ln,email:em,pass:pw,referrerId:ref.id,referrerName:ref.name,joined:new Date().toLocaleDateString(),orders:0};db.users.push(u);db.cur=u;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Account created! Welcome to Netiva.':(lang==='zht'?'帳戶建立成功！歡迎加入 Netiva。':'账户创建成功！欢迎加入 Netiva。')}</div>`;setTimeout(()=>go('shop'),900);}
 function rLogin(r){r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('signIn')}</h2><div class="msub">${t('welcomeBack')}</div><div id="lm"></div><div class="fl"><label>${t('email')}</label><input type="email" id="le"></div><div class="fl"><label>${t('password')}</label><input type="password" id="lp" onkeydown="if(event.key==='Enter')doLogin()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">${t('signInBtn')}</button><div class="sw">${t('noAccount')} <a onclick="go('reg')">${t('registerHere')}</a></div></div></div>`;}
 function doLogin(){const em=document.getElementById('le').value.trim().toLowerCase(),pw=document.getElementById('lp').value,msg=document.getElementById('lm');if(!em||!pw){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}const u=db.users.find(u=>u.email===em&&u.pass===pw);if(!u){msg.innerHTML=`<div class="m e">${lang==='en'?'Incorrect email or password.':(lang==='zht'?'電子郵件或密碼不正確。':'邮箱或密码不正确。')}</div>`;return;}db.cur=u;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Welcome back, '+u.name.split(' ')[0]+'!':(lang==='zht'?'歡迎回來，'+u.name.split(' ')[0]+'！':'欢迎回来，'+u.name.split(' ')[0]+'！')}</div>`;setTimeout(()=>go('shop'),700);}
 function rAcc(r){if(!db.cur){go('login');return;}const u=db.cur;r.innerHTML=`<div class="pg"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem"><div style="display:flex;align-items:center;gap:12px"><div class="ava" style="width:44px;height:44px;font-size:15px">${ini(u.name)}</div><div><div style="font-size:16px;font-weight:500">${u.name}</div><div style="font-size:12px;color:var(--color-text-secondary)">${u.email}</div></div></div><button class="btn sm d" onclick="doLO()">${t('logout')}</button></div><div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 12c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${t('refBy')}: <strong>${u.referrerName}</strong></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem"><div class="sc"><div class="sl">${t('joined')}</div><div style="font-size:13px;font-weight:500;margin-top:4px">${u.joined}</div></div><div class="sc"><div class="sl">${t('orders')}</div><div class="sv">${u.orders||0}</div></div></div><div class="dv"></div><div class="fl"><label>${lang==='en'?'Full Name':(lang==='zht'?'姓名':'姓名')}</label><input type="text" id="en" value="${u.name}" style="width:100%"></div><div class="fl"><label>${t('email')}</label><input type="email" id="ee" value="${u.email}" style="width:100%"></div><div id="em"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="saveA()">${t('saveChanges')}</button><div style="margin-top:10px;text-align:center"><a style="font-size:12px;color:var(--color-text-secondary);cursor:pointer;text-decoration:underline" onclick="go('shop')">${t('backToShop')}</a></div></div>`;}
@@ -788,14 +883,26 @@ function saveA(){const n=document.getElementById('en').value.trim(),e=document.g
 function doLO(){db.cur=null;sv();cart=[];go('shop');}
 
 function rAdmLogin(r){
-  if(!db.adminPassword){
+  // Only show setup if NO admin has EVER been created
+  if(!db.adminPassword && !db.adminCreated){
     r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('setupAdmin')}</h2><div class="msub">${t('setupAdminSub')}</div><div id="alm"></div><div class="fl"><label>${t('adminEmail')}</label><input type="email" id="a-email" placeholder="${t('adminEmailPlaceholder')}"></div><div class="fl"><label>${t('adminPassword')}</label><input type="password" id="a-pw" oninput="ckAS(this.value)"><div class="sb" id="a-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="a-pw2"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:4px" onclick="doAdmSetup()">${t('createAdminBtn')}</button><div class="sw"><a onclick="go('shop')">${t('backToShop')}</a></div></div></div>`;
+    return;
+  }
+  // If adminCreated is set but password is missing (shouldn't happen), show locked message
+  if(db.adminCreated && !db.adminPassword){
+    r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('adminPanel')}</h2><div class="m e" style="margin-bottom:12px">${lang==='en'?'Admin account already exists. Please sign in.':lang==='zht'?'管理員帳戶已存在，請登入。':'管理员账户已存在，请登录。'}</div><div id="alm"></div><div class="fl"><label>${t('adminEmail')}</label><input type="email" id="a-email" placeholder="${t('adminEmailPlaceholder')}" onkeydown="if(event.key==='Enter')doAdm()"></div><div class="fl"><label>${t('adminPassword')}</label><input type="password" id="a-pw" onkeydown="if(event.key==='Enter')doAdm()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doAdm()">${t('enterAdmin')}</button><div class="sw"><a onclick="go('shop')">${t('backToShop')}</a></div></div></div>`;
     return;
   }
   r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('adminPanel')}</h2><div class="msub">${t('adminOnly')}</div><div id="alm"></div><div class="fl"><label>${t('adminEmail')}</label><input type="email" id="a-email" placeholder="${t('adminEmailPlaceholder')}" onkeydown="if(event.key==='Enter')doAdm()"></div><div class="fl"><label>${t('adminPassword')}</label><input type="password" id="a-pw" onkeydown="if(event.key==='Enter')doAdm()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doAdm()">${t('enterAdmin')}</button><div class="sw"><a onclick="go('shop')">${t('backToShop')}</a></div></div></div>`;
 }
 function ckAS(pw){const b=document.getElementById('a-sb');if(!b)return;let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
-function doAdmSetup(){const em=document.getElementById('a-email').value.trim().toLowerCase(),pw=document.getElementById('a-pw').value,pw2=document.getElementById('a-pw2').value,msg=document.getElementById('alm');if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(pw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(pw!==pw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}db.adminEmail=em;db.adminPassword=pw;db.adm=true;sv();go('admin');}
+function doAdmSetup(){
+  // Hard block: if admin already created (even if password was cleared), refuse
+  if(db.adminCreated){const msg=document.getElementById('alm');if(msg)msg.innerHTML=`<div class="m e">${lang==='en'?'An admin account has already been created.':lang==='zht'?'管理員帳戶已建立。':'管理员账户已创建。'}</div>`;return;}
+  const em=document.getElementById('a-email').value.trim().toLowerCase(),pw=document.getElementById('a-pw').value,pw2=document.getElementById('a-pw2').value,msg=document.getElementById('alm');
+  if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(pw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(pw!==pw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}
+  db.adminEmail=em;db.adminPassword=pw;db.adminCreated=true;db.adm=true;sv();go('admin');
+}
 function doAdm(){const em=document.getElementById('a-email').value.trim().toLowerCase(),pw=document.getElementById('a-pw').value,msg=document.getElementById('alm');if(em===db.adminEmail&&pw===db.adminPassword){db.adm=true;sv();go('admin');}else msg.innerHTML=`<div class="m e">${t('wrongPassword')}</div>`;}
 
 let atab='products';
@@ -811,13 +918,64 @@ function rAdm(r){
 
 function rAdmProds(tc){tc.innerHTML=`<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><span style="font-size:13px;color:var(--color-text-secondary)">${db.products.filter(p=>p.active).length} ${t('active')} / ${db.products.length}</span><button class="btn p sm" onclick="startAddProd()">${t('addProduct')}</button></div><div id="prod-add-slot"></div>${db.products.map(p=>`<div class="prod-row"><div class="prod-thumb">${p.img?`<img src="${p.img}">`:(p.icon||'📦')}</div><div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">${pName(p)}${!p.active?`<span style="background:#FCEBEB;color:#A32D2D;border-radius:999px;font-size:11px;padding:1px 7px;margin-left:4px">${t('inactive')}</span>`:''}</div><div style="font-size:12px;color:var(--color-text-secondary)">${pDesc(p)} · <span class="code" style="font-size:11px">$${p.usdPrice.toFixed(2)}</span></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn sm" onclick="startEditProd('${p.id}')">${t('edit')}</button><button class="btn sm" onclick="toggleProd('${p.id}')">${p.active?t('deactivate'):t('activate')}</button><button class="btn sm d" onclick="deleteProd('${p.id}')">${t('delete')}</button></div></div><div id="prod-edit-${p.id}"></div>`).join('')}</div>`;}
 
-function prodFormHtml(p,pfx){const v=f=>p?p[f]??'':'';const imgVal=window[pfx+'img']!==undefined?window[pfx+'img']:(p?.img||'');return `<div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('productName')} (EN)</label><input type="text" id="${pfx}name_en" value="${p?.name_en||''}" placeholder="e.g. Wildflower Honey"></div><div class="fl"><label>${t('productName')} (中文)</label><input type="text" id="${pfx}name_zh" value="${p?.name_zh||''}" placeholder="例如：野花蜂蜜"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('description')} (EN)</label><textarea id="${pfx}desc_en" placeholder="e.g. Raw & unfiltered">${p?.desc_en||''}</textarea></div><div class="fl"><label>${t('description')} (中文)</label><textarea id="${pfx}desc_zh" placeholder="例如：原味未过滤">${p?.desc_zh||''}</textarea></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('tagLabel')} (EN)</label><input type="text" id="${pfx}tag_en" value="${p?.tag_en||''}" placeholder="e.g. Organic"></div><div class="fl"><label>${t('tagLabel')} (中文)</label><input type="text" id="${pfx}tag_zh" value="${p?.tag_zh||''}" placeholder="例如：有机"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('emojiIcon')}</label><input type="text" id="${pfx}icon" value="${v('icon')}" placeholder="🍯"></div><div class="fl"><label>${t('usdPrice')}</label><input type="number" id="${pfx}usdPrice" value="${v('usdPrice')}" placeholder="0.00" step="0.01" min="0"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('category')}</label><select id="${pfx}category">${Object.entries(CATS_KEY).filter(([v])=>v!=='all').map(([val,key])=>`<option value="${val}" ${v('category')===val?'selected':''}>${t(key)}</option>`).join('')}</select></div><div class="fl"><label>${t('status')}</label><select id="${pfx}active"><option value="1" ${(!p||p.active)?'selected':''}>${t('active')}</option><option value="0" ${(p&&!p.active)?'selected':''}>${t('inactive')}</option></select></div></div><div class="fl"><label>${lang==='en'?'Product Image (optional)':(lang==='zht'?'商品圖片（選填）':'商品图片（可选）')}</label><label class="img-upload-box" style="display:block;cursor:pointer">${imgVal?`<img src="${imgVal}" style="height:60px;object-fit:cover;border-radius:var(--border-radius-md);display:block;margin:0 auto 6px"><div style="font-size:11px;color:var(--color-text-secondary)">${t('replaceImg')}</div>`:`<div style="font-size:12px;color:var(--color-text-secondary)">${t('uploadImg')}</div>`}<input type="file" accept="image/*" style="display:none" onchange="handleProdImg(event,'${pfx}')"></label>${imgVal?`<button class="btn sm d" style="margin-top:4px" onclick="window['${pfx}img']='';rAdmProds(document.getElementById('atc'))">${t('removeImg')}</button>`:''}</div>`;}
+function prodFormHtml(p,pfx){
+  const v=f=>p?p[f]??'':'';
+  const imgVal=window[pfx+'img']!==undefined?window[pfx+'img']:(p?.img||'');
+  const vs=window[pfx+'variants']!==undefined?window[pfx+'variants']:(p?.variants?JSON.parse(JSON.stringify(p.variants)):[]);
+  if(window[pfx+'variants']===undefined)window[pfx+'variants']=vs;
+  const varRowsHtml=vs.map((v2,i)=>`<div class="var-row" id="${pfx}vrow-${i}">
+    <input type="text" id="${pfx}v-en-${i}" value="${v2.name_en||''}" placeholder="EN name" style="min-width:60px">
+    <input type="text" id="${pfx}v-zh-${i}" value="${v2.name_zh||''}" placeholder="中文名称" style="min-width:60px">
+    <input type="number" id="${pfx}v-pd-${i}" value="${v2.priceDelta||0}" placeholder="+price" step="0.01" style="width:70px">
+    <button class="btn sm d" style="flex-shrink:0;padding:3px 8px" onclick="rmVar('${pfx}',${i})">×</button>
+  </div>`).join('');
+  return `<div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('productName')} (EN)</label><input type="text" id="${pfx}name_en" value="${p?.name_en||''}" placeholder="e.g. Wildflower Honey"></div><div class="fl"><label>${t('productName')} (中文)</label><input type="text" id="${pfx}name_zh" value="${p?.name_zh||''}" placeholder="例如：野花蜂蜜"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('description')} (EN)</label><textarea id="${pfx}desc_en" placeholder="e.g. Raw & unfiltered">${p?.desc_en||''}</textarea></div><div class="fl"><label>${t('description')} (中文)</label><textarea id="${pfx}desc_zh" placeholder="例如：原味未过滤">${p?.desc_zh||''}</textarea></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('tagLabel')} (EN)</label><input type="text" id="${pfx}tag_en" value="${p?.tag_en||''}" placeholder="e.g. Organic"></div><div class="fl"><label>${t('tagLabel')} (中文)</label><input type="text" id="${pfx}tag_zh" value="${p?.tag_zh||''}" placeholder="例如：有机"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('emojiIcon')}</label><input type="text" id="${pfx}icon" value="${v('icon')}" placeholder="🍯"></div><div class="fl"><label>${t('usdPrice')}</label><input type="number" id="${pfx}usdPrice" value="${v('usdPrice')}" placeholder="0.00" step="0.01" min="0"></div></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('category')}</label><select id="${pfx}category">${Object.entries(CATS_KEY).filter(([val])=>val!=='all').map(([val,key])=>`<option value="${val}" ${v('category')===val?'selected':''}>${t(key)}</option>`).join('')}</select></div><div class="fl"><label>${t('status')}</label><select id="${pfx}active"><option value="1" ${(!p||p.active)?'selected':''}>${t('active')}</option><option value="0" ${(p&&!p.active)?'selected':''}>${t('inactive')}</option></select></div></div>
+  <div style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <label style="font-size:12px;color:var(--color-text-secondary);font-weight:500">${lang==='en'?'Variants (sizes / flavours / colours)':lang==='zht'?'規格（尺寸 / 口味 / 顏色）':'规格（尺寸 / 口味 / 颜色）'}</label>
+      <button class="btn sm" onclick="addVar('${pfx}')">${lang==='en'?'+ Add':lang==='zht'?'+ 新增':'+ 添加'}</button>
+    </div>
+    <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">${lang==='en'?'EN name · 中文名 · Price delta (+/−USD). Leave empty for no variants.':lang==='zht'?'英文名 · 中文名 · 價格差（+/−USD）。留空表示無規格。':'英文名 · 中文名 · 价格差（+/−USD）。留空表示无规格。'}</div>
+    <div id="${pfx}vlist">${varRowsHtml}</div>
+  </div>
+  <div class="fl"><label>${lang==='en'?'Product Image (optional)':(lang==='zht'?'商品圖片（選填）':'商品图片（可选）')}</label><label class="img-upload-box" style="display:block;cursor:pointer">${imgVal?`<img src="${imgVal}" style="height:60px;object-fit:cover;border-radius:var(--border-radius-md);display:block;margin:0 auto 6px"><div style="font-size:11px;color:var(--color-text-secondary)">${t('replaceImg')}</div>`:`<div style="font-size:12px;color:var(--color-text-secondary)">${t('uploadImg')}</div>`}<input type="file" accept="image/*" style="display:none" onchange="handleProdImg(event,'${pfx}')"></label>${imgVal?`<button class="btn sm d" style="margin-top:4px" onclick="window['${pfx}img']='';rAdmProds(document.getElementById('atc'))">${t('removeImg')}</button>`:''}</div>`;
+}
+function addVar(pfx){
+  if(!window[pfx+'variants'])window[pfx+'variants']=[];
+  window[pfx+'variants'].push({id:'v'+Date.now(),name_en:'',name_zh:'',priceDelta:0});
+  // re-render the vlist inline
+  const list=document.getElementById(pfx+'vlist');if(!list)return;
+  const vs=window[pfx+'variants'];
+  const i=vs.length-1;
+  const row=document.createElement('div');row.className='var-row';row.id=pfx+'vrow-'+i;
+  row.innerHTML=`<input type="text" id="${pfx}v-en-${i}" value="" placeholder="EN name" style="min-width:60px"><input type="text" id="${pfx}v-zh-${i}" value="" placeholder="中文名称" style="min-width:60px"><input type="number" id="${pfx}v-pd-${i}" value="0" placeholder="+price" step="0.01" style="width:70px"><button class="btn sm d" style="flex-shrink:0;padding:3px 8px" onclick="rmVar('${pfx}',${i})">×</button>`;
+  list.appendChild(row);
+}
+function rmVar(pfx,idx){
+  // read current values before removing
+  collectVarFields(pfx);
+  window[pfx+'variants'].splice(idx,1);
+  // re-render vlist
+  const list=document.getElementById(pfx+'vlist');if(!list)return;
+  const vs=window[pfx+'variants'];
+  list.innerHTML=vs.map((v2,i)=>`<div class="var-row" id="${pfx}vrow-${i}"><input type="text" id="${pfx}v-en-${i}" value="${v2.name_en||''}" placeholder="EN name" style="min-width:60px"><input type="text" id="${pfx}v-zh-${i}" value="${v2.name_zh||''}" placeholder="中文名称" style="min-width:60px"><input type="number" id="${pfx}v-pd-${i}" value="${v2.priceDelta||0}" placeholder="+price" step="0.01" style="width:70px"><button class="btn sm d" style="flex-shrink:0;padding:3px 8px" onclick="rmVar('${pfx}',${i})">×</button></div>`).join('');
+}
+function collectVarFields(pfx){
+  const vs=window[pfx+'variants']||[];
+  vs.forEach((v2,i)=>{
+    const en=document.getElementById(pfx+'v-en-'+i);const zh=document.getElementById(pfx+'v-zh-'+i);const pd=document.getElementById(pfx+'v-pd-'+i);
+    if(en)v2.name_en=en.value.trim();if(zh)v2.name_zh=zh.value.trim();if(pd)v2.priceDelta=parseFloat(pd.value)||0;
+  });
+  // filter out completely blank rows
+  window[pfx+'variants']=vs.filter(v2=>v2.name_en||v2.name_zh);
+  return window[pfx+'variants'];
+}
 
 function handleProdImg(e,pfx){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{window[pfx+'img']=ev.target.result;rAdmProds(document.getElementById('atc'));};rd.readAsDataURL(f);}
 function startAddProd(){editingProdId='new';rAdmProds(document.getElementById('atc'));const slot=document.getElementById('prod-add-slot');slot.innerHTML=`<div class="prod-edit-form"><div style="font-size:14px;font-weight:500;margin-bottom:12px">${t('addProductTitle')}</div><div id="add-prod-msg"></div>${prodFormHtml(null,'np-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveNewProd()">${t('saveProduct')}</button><button class="btn sm" onclick="editingProdId=null;rAdmProds(document.getElementById('atc'))">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),desc_en=document.getElementById('np-desc_en').value.trim(),desc_zh=document.getElementById('np-desc_zh').value.trim(),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),category=document.getElementById('np-category').value,active=document.getElementById('np-active').value==='1',img=window['np-img']||'';if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}db.products.push({id:'p'+Date.now(),name_en,name_zh,desc_en,desc_zh,tag_en,tag_zh,icon,usdPrice,category,active,img});window['np-img']=undefined;sv();editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
+function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),desc_en=document.getElementById('np-desc_en').value.trim(),desc_zh=document.getElementById('np-desc_zh').value.trim(),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),category=document.getElementById('np-category').value,active=document.getElementById('np-active').value==='1',img=window['np-img']||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}db.products.push({id:'p'+Date.now(),name_en,name_zh,desc_en,desc_zh,tag_en,tag_zh,icon,usdPrice,category,active,img,variants});window['np-img']=undefined;window['np-variants']=undefined;sv();editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
 function startEditProd(id){editingProdId=editingProdId===id?null:id;rAdmProds(document.getElementById('atc'));if(editingProdId===id){const slot=document.getElementById('prod-edit-'+id),p=db.products.find(x=>x.id===id);slot.innerHTML=`<div class="prod-edit-form"><div id="ep-msg-${id}"></div>${prodFormHtml(p,'ep'+id+'-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveEditProd('${id}')">${t('saveChanges')}</button><button class="btn sm" onclick="startEditProd('${id}')">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}}
-function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),desc_en=document.getElementById(pfx+'desc_en').value.trim(),desc_zh=document.getElementById(pfx+'desc_zh').value.trim(),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),category=document.getElementById(pfx+'category').value,active=document.getElementById(pfx+'active').value==='1',img=window[pfx+'img']!==undefined?window[pfx+'img']:(db.products.find(x=>x.id===id)?.img||'');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,desc_en,desc_zh,tag_en,tag_zh,icon,usdPrice,category,active,img});window[pfx+'img']=undefined;sv();editingProdId=null;rAdmProds(document.getElementById('atc'));}
+function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),desc_en=document.getElementById(pfx+'desc_en').value.trim(),desc_zh=document.getElementById(pfx+'desc_zh').value.trim(),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),category=document.getElementById(pfx+'category').value,active=document.getElementById(pfx+'active').value==='1',img=window[pfx+'img']!==undefined?window[pfx+'img']:(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,desc_en,desc_zh,tag_en,tag_zh,icon,usdPrice,category,active,img,variants});window[pfx+'img']=undefined;window[pfx+'variants']=undefined;sv();editingProdId=null;rAdmProds(document.getElementById('atc'));}
 function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.active=!p.active;sv();rAdmProds(document.getElementById('atc'));}
 function deleteProd(id){db.products=db.products.filter(x=>x.id!==id);sv();rAdmProds(document.getElementById('atc'));}
 
@@ -837,32 +995,7 @@ function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.activ
 function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmMem(tc){tc.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>${t('memberName')}</th><th>${t('email')}</th><th>${t('referrer')}</th><th>${t('referralCode')}</th><th>${t('regDate')}</th><th>${t('orders')}</th></tr></thead><tbody>${db.users.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:2rem">${t('noMembers')}</td></tr>`:db.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="ava" style="width:24px;height:24px;font-size:10px">${ini(u.name)}</div><span style="font-weight:500">${u.name}</span></div></td><td style="color:var(--color-text-secondary)">${u.email}</td><td><span class="bdg a">${u.referrerName}</span></td><td><span class="code">${refById(u.referrerId)?.code||'—'}</span></td><td style="color:var(--color-text-secondary)">${u.joined}</td><td>${u.orders||0}</td></tr>`).join('')}</tbody></table></div>`;}
 
-function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.heroTextTitle||'';const heroSub=db.heroTextSub||'';const logoImg=db.logoImage||'';const logoTxt=db.logoText||'Harvest';tc.innerHTML=`<div style="max-width:480px">
-<div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem">
-  <div style="font-size:15px;font-weight:500;margin-bottom:4px">${lang==='en'?'Logo':lang==='zht'?'標誌':'标志'}</div>
-  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">${lang==='en'?'Upload an image logo or set a custom text name.':lang==='zht'?'上傳圖片標誌或設定文字名稱。':'上传图片标志或设置文字名称。'}</div>
-  <div id="logo-msg"></div>
-  <div style="margin-bottom:14px">
-    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">${lang==='en'?'Current Logo':lang==='zht'?'目前標誌':'当前标志'}</div>
-    <div style="padding:12px 16px;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);display:inline-flex;align-items:center;min-width:120px">
-      ${logoImg?`<img src="${logoImg}" style="height:28px;max-width:120px;object-fit:contain;">`:`<span style="font-size:18px;font-weight:500;letter-spacing:-.4px">${logoTxt}</span>`}
-    </div>
-  </div>
-  <div class="fl" style="margin-bottom:10px">
-    <label>${lang==='en'?'Logo Text (used if no image)':lang==='zht'?'標誌文字（無圖片時使用）':'标志文字（无图片时使用）'}</label>
-    <input type="text" id="stg-logo-text" value="${logoTxt}" placeholder="Harvest" style="width:100%">
-  </div>
-  <button class="btn p sm" style="margin-bottom:14px" onclick="saveLogoText()">${lang==='en'?'Save Text':lang==='zht'?'儲存文字':'保存文字'}</button>
-  <div class="dv"></div>
-  <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:12px 0 6px">${lang==='en'?'Logo Image':lang==='zht'?'標誌圖片':'标志图片'}</div>
-  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:10px">${lang==='en'?'Recommended: PNG with transparent background, height ~60px.':lang==='zht'?'建議使用透明背景的PNG圖片，高度約60像素。':'建议使用透明背景的PNG图片，高度约60像素。'}</div>
-  ${logoImg?`<div style="margin-bottom:12px;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);display:inline-flex"><img src="${logoImg}" style="height:36px;max-width:160px;object-fit:contain;display:block"></div><br>`:''}
-  <label class="img-upload-box" style="display:block;cursor:pointer;margin-bottom:8px">
-    <div style="font-size:12px;color:var(--color-text-secondary)">${logoImg?(lang==='en'?'Click to replace logo image':(lang==='zht'?'點擊更換標誌圖片':'点击更换标志图片')):(lang==='en'?'Click to upload logo image (PNG/SVG/WebP)':(lang==='zht'?'點擊上傳標誌圖片':'点击上传标志图片'))}</div>
-    <input type="file" accept="image/*" style="display:none" onchange="handleLogoImg(event)">
-  </label>
-  ${logoImg?`<button class="btn sm d" style="width:100%;justify-content:center" onclick="removeLogoImg()">${lang==='en'?'Remove logo image':(lang==='zht'?'移除標誌圖片':'移除标志图片')}</button>`:''}
-</div>
+function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.heroTextTitle||'';const heroSub=db.heroTextSub||'';tc.innerHTML=`<div style="max-width:480px">
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem">
   <div style="font-size:15px;font-weight:500;margin-bottom:4px">${lang==='en'?'Hero Banner':lang==='zht'?'首頁橫幅':'首页横幅'}</div>
   <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">${lang==='en'?'Edit the homepage hero title, subtitle, and background image.':lang==='zht'?'編輯首頁橫幅標題、副標題和背景圖片。':'编辑首页横幅标题、副标题和背景图片。'}</div>
@@ -888,9 +1021,6 @@ function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.hero
   <div id="hero-img-msg" style="margin-top:8px"></div>
 </div>
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
-function handleLogoImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.logoImage=ev.target.result;sv();renderLogo();const msg=document.getElementById('logo-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Logo image saved!':lang==='zht'?'標誌圖片已儲存！':'标志图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
-function removeLogoImg(){db.logoImage='';sv();renderLogo();rAdmSettings(document.getElementById('atc'));}
-function saveLogoText(){const txt=document.getElementById('stg-logo-text')?.value.trim()||'Harvest';db.logoText=txt;if(!db.logoImage){sv();renderLogo();}else{sv();}const msg=document.getElementById('logo-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Logo text saved!':lang==='zht'?'標誌文字已儲存！':'标志文字已保存！'}</div>`;setTimeout(()=>{if(msg)msg.innerHTML='';},2000);rAdmSettings(document.getElementById('atc'));}
 function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.heroImage=ev.target.result;sv();const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
 function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}
 function saveHeroTextSettings(){const title=document.getElementById('stg-hero-title')?.value.trim(),sub=document.getElementById('stg-hero-sub')?.value.trim(),msg=document.getElementById('hero-text-msg');if(title!==undefined)db.heroTextTitle=title;if(sub!==undefined)db.heroTextSub=sub;sv();if(msg)msg.innerHTML='<div class="m s" style="font-size:12px">'+(lang==='en'?'Text saved!':lang==='zht'?'文字已儲存！':'文字已保存！')+'</div>';setTimeout(()=>{if(msg)msg.innerHTML='';},2000);}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
