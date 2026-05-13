@@ -345,6 +345,7 @@
     window._fsSetDoc = setDoc;
     window._fsGetDoc = getDoc;
     window._fsOnSnapshot = onSnapshot;
+    window._doc = doc;
     window._firebaseReady = true;
     window.dispatchEvent(new Event('firebaseReady'));
   </script>
@@ -677,35 +678,123 @@ let db = {...DB_DEFAULTS, products:[...DEFAULT_PRODS]};
 // heroTextTitle, heroTextSub, feeRate) is synced globally via Firestore.
 
 const SYNC_KEYS = ['products','referrers','users','adminEmail','adminPassword',
-  'adminCreated','heroImage','heroTextTitle','heroTextSub','feeRate'];
+  'adminCreated','heroTextTitle','heroTextSub','feeRate'];
+// Image-only keys stored in a separate Firestore document to keep the main
+// doc small and fast. heroImage + per-product imgs arrays live here.
+const IMG_DOC_KEY = 'netiva_images';
 
 let _svPending = false;
 let _fbReady = false;
 
 // Save to Firestore (debounced 400ms)
-function sv(){
-  db.feeRate = FEE_RATE;
-  // Always keep localStorage as a fast local cache too
-  try{localStorage.setItem('netiva_shop', JSON.stringify(db));}catch(e){}
-  if(!_fbReady) return; // will be flushed once Firebase is ready
-  if(_svPending) return;
-  _svPending = true;
-  setTimeout(async ()=>{
-    _svPending = false;
-    try{
-      const payload={};
-      SYNC_KEYS.forEach(k=>{ if(db[k]!==undefined) payload[k]=db[k]; });
-      await window._fsSetDoc(window._storeDoc, payload, {merge:true});
-    }catch(e){ console.warn('Firestore write failed:',e); }
-  }, 400);
+function _buildImgPayload(){
+  // Collect hero image + per-product image arrays into a flat structure
+  const p={};
+  if(db.heroImage!==undefined) p.heroImage=db.heroImage;
+  (db.products||[]).forEach(prod=>{
+    if(prod.imgs&&prod.imgs.length) p['pi_'+prod.id]=prod.imgs;
+    else if(prod.img) p['pi_'+prod.id]=[prod.img];
+    // referrer QR codes
+  });
+  (db.referrers||[]).forEach(ref=>{
+    if(ref.alipayQr) p['aqr_'+ref.id]=ref.alipayQr;
+    if(ref.wechatQr) p['wqr_'+ref.id]=ref.wechatQr;
+  });
+  return p;
+}
+function _buildMainPayload(){
+  // Strip imgs/img from products and QRs from referrers — keep only metadata
+  const payload={};
+  SYNC_KEYS.forEach(k=>{
+    if(k==='products'){
+      payload.products=(db.products||[]).map(p=>{
+        const {img,imgs,...rest}=p; return rest;
+      });
+    } else if(k==='referrers'){
+      payload.referrers=(db.referrers||[]).map(r=>{
+        const {alipayQr,wechatQr,...rest}=r; return rest;
+      });
+    } else {
+      if(db[k]!==undefined) payload[k]=db[k];
+    }
+  });
+  return payload;
+}
+function _applyImgPayload(data){
+  if(!data) return;
+  if(data.heroImage!==undefined) db.heroImage=data.heroImage;
+  (db.products||[]).forEach(prod=>{
+    const key='pi_'+prod.id;
+    if(data[key]!==undefined){ prod.imgs=data[key]; prod.img=data[key][0]||''; }
+  });
+  (db.referrers||[]).forEach(ref=>{
+    if(data['aqr_'+ref.id]!==undefined) ref.alipayQr=data['aqr_'+ref.id];
+    if(data['wqr_'+ref.id]!==undefined) ref.wechatQr=data['wqr_'+ref.id];
+  });
 }
 
-// Merge remote snapshot into local db (non-destructively for session state)
+let _svPendingMain=false, _svPendingImg=false;
+
+function sv(){
+  db.feeRate = FEE_RATE;
+  // Fast local cache — split into two keys matching the two Firestore docs
+  try{
+    const mainSnap={...db, products:_buildMainPayload().products, referrers:_buildMainPayload().referrers};
+    localStorage.setItem('netiva_shop', JSON.stringify(mainSnap));
+    localStorage.setItem(IMG_DOC_KEY, JSON.stringify(_buildImgPayload()));
+  }catch(e){}
+  if(!_fbReady) return;
+  // Debounced write — main metadata doc (fast, small)
+  if(!_svPendingMain){
+    _svPendingMain=true;
+    setTimeout(async()=>{
+      _svPendingMain=false;
+      try{ await window._fsSetDoc(window._storeDoc, _buildMainPayload(), {merge:true}); }
+      catch(e){ console.warn('Firestore main write failed:',e); }
+    }, 400);
+  }
+  // Debounced write — images doc (heavier, separate)
+  if(!_svPendingImg){
+    _svPendingImg=true;
+    setTimeout(async()=>{
+      _svPendingImg=false;
+      try{
+        const imgDoc=window._doc(window._fsdb,'netiva','shopimages');
+        await window._fsSetDoc(imgDoc, _buildImgPayload(), {merge:true});
+      }catch(e){ console.warn('Firestore image write failed:',e); }
+    }, 600);
+  }
+}
+
+// Merge remote main-doc snapshot into local db.
+// Images live in a separate doc and are applied via _applyImgPayload().
 function _applyRemote(data){
   if(!data) return;
-  SYNC_KEYS.forEach(k=>{ if(data[k]!==undefined) db[k]=data[k]; });
+  SYNC_KEYS.forEach(k=>{
+    if(data[k]===undefined) return;
+    if(k==='products'){
+      // Merge metadata only — preserve existing imgs arrays already in memory
+      const incoming=data[k];
+      const existing=db.products||[];
+      db.products=incoming.map(np=>{
+        const old=existing.find(op=>op.id===np.id)||{};
+        return {...np, img:old.img||np.img||'', imgs:old.imgs||np.imgs||[]};
+      });
+    } else if(k==='referrers'){
+      const incoming=data[k];
+      const existing=db.referrers||[];
+      db.referrers=incoming.map(nr=>{
+        const old=existing.find(or=>or.id===nr.id)||{};
+        return {...nr, alipayQr:old.alipayQr||nr.alipayQr||'', wechatQr:old.wechatQr||nr.wechatQr||''};
+      });
+    } else {
+      db[k]=data[k];
+    }
+  });
   if(!db.products?.length) db.products=[...DEFAULT_PRODS];
   if(typeof db.feeRate==='number') FEE_RATE=db.feeRate;
+  // Also cache main snapshot to localStorage
+  try{localStorage.setItem('netiva_shop', JSON.stringify(db));}catch(e){}
 }
 
 // Show a loading overlay while we fetch initial data
@@ -721,50 +810,84 @@ function _showLoader(){
     </div>`;
 }
 
-// Bootstrap: load from Firestore on startup, then subscribe to live updates
+// Bootstrap: instant paint from cache, then hydrate from Firestore in two passes
 async function _boot(){
-  _showLoader();
-  // Try local cache first for instant paint
+  // ── Pass 0: render instantly from localStorage (zero network wait) ────────
+  let hadCache=false;
   try{
     const cached=localStorage.getItem('netiva_shop');
-    if(cached){ const p=JSON.parse(cached); _applyRemote(p); }
+    if(cached){ const p=JSON.parse(cached); _applyRemote(p); hadCache=true; }
+    // Also restore cached images
+    const cachedImgs=localStorage.getItem(IMG_DOC_KEY);
+    if(cachedImgs){ _applyImgPayload(JSON.parse(cachedImgs)); }
   }catch(e){}
 
-  // Fetch from Firestore
+  if(hadCache){
+    // Render immediately from cache — no spinner
+    _fbReady=true;
+    go('shop');
+  } else {
+    _showLoader();
+  }
+
+  // ── Pass 1: fetch lightweight metadata doc (no images) ───────────────────
   try{
     const snap = await window._fsGetDoc(window._storeDoc);
     if(snap.exists()){
       _applyRemote(snap.data());
     } else {
       // First ever run — seed Firestore with defaults
-      const seed={};
-      SYNC_KEYS.forEach(k=>{ if(DB_DEFAULTS[k]!==undefined) seed[k]=DB_DEFAULTS[k]; });
-      seed.products=[...DEFAULT_PRODS];
-      await window._fsSetDoc(window._storeDoc, seed);
+      const mainSeed=_buildMainPayload();
+      // Ensure products are set from defaults
+      mainSeed.products=DEFAULT_PRODS.map(p=>{const{img,imgs,...r}=p;return r;});
+      await window._fsSetDoc(window._storeDoc, mainSeed);
     }
   }catch(e){
-    console.warn('Firestore read failed, using local cache:',e);
-    // Show a non-blocking warning banner
-    const warn=document.createElement('div');
-    warn.style.cssText='position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#FFF3CD;border:1px solid #EAD0A8;color:#854F0B;font-size:12px;padding:8px 16px;border-radius:8px;z-index:9999;max-width:420px;text-align:center';
-    warn.innerHTML='⚠️ Could not reach the shared database. Changes may not sync until reconnected. <button onclick="this.parentNode.remove()" style="border:none;background:none;cursor:pointer;font-size:14px;margin-left:8px;color:#854F0B">×</button>';
-    document.body.appendChild(warn);
+    console.warn('Firestore main read failed:',e);
+    if(!hadCache){
+      const warn=document.createElement('div');
+      warn.style.cssText='position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#FFF3CD;border:1px solid #EAD0A8;color:#854F0B;font-size:12px;padding:8px 16px;border-radius:8px;z-index:9999;max-width:420px;text-align:center';
+      warn.innerHTML='⚠️ Could not reach the shared database. Changes may not sync until reconnected. <button onclick="this.parentNode.remove()" style="border:none;background:none;cursor:pointer;font-size:14px;margin-left:8px;color:#854F0B">×</button>';
+      document.body.appendChild(warn);
+    }
   }
 
-  _fbReady = true;
+  _fbReady=true;
+  // Render with fresh metadata (images may still be loading)
+  try{ go('shop'); }catch(e){}
 
-  // Subscribe to live updates from other browsers/devices
+  // ── Pass 2: fetch images doc in background (non-blocking) ────────────────
+  (async()=>{
+    try{
+      const imgDocRef=window._doc(window._fsdb,'netiva','shopimages');
+      const imgSnap=await window._fsGetDoc(imgDocRef);
+      if(imgSnap.exists()){
+        _applyImgPayload(imgSnap.data());
+        try{localStorage.setItem(IMG_DOC_KEY, JSON.stringify(imgSnap.data()));}catch(e){}
+        // Re-render shop only — images are now available
+        if(!db.adm){ try{render();}catch(e){} }
+      }
+    }catch(e){ console.warn('Firestore image read failed:',e); }
+  })();
+
+  // ── Live listeners ────────────────────────────────────────────────────────
   try{
     window._fsOnSnapshot(window._storeDoc, (snap)=>{
       if(!snap.exists()) return;
       _applyRemote(snap.data());
-      // Re-render current view if not in admin session (avoid interrupting admin mid-edit)
       if(!db.adm){ try{render();}catch(e){} }
     });
-  }catch(e){ console.warn('Firestore listener failed:',e); }
+  }catch(e){ console.warn('Firestore main listener failed:',e); }
 
-  // Initial render
-  go('shop');
+  try{
+    const imgDocRef=window._doc(window._fsdb,'netiva','shopimages');
+    window._fsOnSnapshot(imgDocRef,(snap)=>{
+      if(!snap.exists()) return;
+      _applyImgPayload(snap.data());
+      try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(snap.data()));}catch(e){}
+      if(!db.adm){ try{render();}catch(e){} }
+    });
+  }catch(e){ console.warn('Firestore image listener failed:',e); }
 }
 
 // Wait for Firebase module to be ready, then boot
@@ -775,8 +898,11 @@ if(window._firebaseReady){
   // Safety fallback: if Firebase never loads (e.g. offline), boot from cache after 3s
   setTimeout(()=>{
     if(!_fbReady){
-      _fbReady=false;
-      try{const cached=localStorage.getItem('netiva_shop');if(cached){const p=JSON.parse(cached);_applyRemote(p);}}catch(e){}
+      _fbReady=true;
+      try{
+        const cached=localStorage.getItem('netiva_shop');if(cached){const p=JSON.parse(cached);_applyRemote(p);}
+        const cachedImgs=localStorage.getItem(IMG_DOC_KEY);if(cachedImgs){_applyImgPayload(JSON.parse(cachedImgs));}
+      }catch(e){}
       go('shop');
     }
   }, 3000);
