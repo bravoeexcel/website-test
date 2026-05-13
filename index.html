@@ -298,6 +298,41 @@
       .fpill { padding: 7px 14px; font-size: 13px; }
     }
   </style>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+     // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyD_ciG2Etqay3PmtgMIt1NCEue6NAqUvKE",
+    authDomain: "netiva-shop.firebaseapp.com",
+    projectId: "netiva-shop",
+    storageBucket: "netiva-shop.firebasestorage.app",
+    messagingSenderId: "388325214123",
+    appId: "1:388325214123:web:dc81dd48cdedc633ba34ee",
+    measurementId: "G-JC8TYBTEJ1"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+
+    const app = initializeApp(firebaseConfig);
+    const fsdb = getFirestore(app);
+    const STORE_DOC = doc(fsdb, 'netiva', 'shopdata');
+
+    // Expose to global scope for the main script
+    window._fsdb = fsdb;
+    window._storeDoc = STORE_DOC;
+    window._fsSetDoc = setDoc;
+    window._fsGetDoc = getDoc;
+    window._fsOnSnapshot = onSnapshot;
+    window._firebaseReady = true;
+    window.dispatchEvent(new Event('firebaseReady'));
+  </script>
 </head>
 <body>
 
@@ -608,16 +643,129 @@ const DEFAULT_PRODS=[
   {id:'p6',name_en:'Extra Virgin Olive Oil',name_zh:'特级橄榄油',desc_en:'Cold pressed, 500ml',desc_zh:'冷压初榨 500ml',usdPrice:16.00,icon:'🫒',tag_en:'',tag_zh:'',category:'pantry',img:'',active:true,variants:[]},
 ];
 
-let db={
+// ── Default DB shape (used as fallback / first-run seed) ──────────────────
+const DB_DEFAULTS = {
   products:[...DEFAULT_PRODS],
   referrers:[
     {id:'r1',name:'陈志远',address:'广州市天河区',country:'中国',phone:'138-0001-0001',iMemberNo:'IH-10001',email:'chen@example.com',code:'CHEN-R1',note:'South China region',active:true,alipayQr:'',wechatQr:''},
     {id:'r2',name:'Lin Xiaoyan',address:'Pudong, Shanghai',country:'China',phone:'139-0002-0002',iMemberNo:'IH-10002',email:'lin@example.com',code:'LIN-R2',note:'Online channel',active:true,alipayQr:'',wechatQr:''},
   ],
-  users:[],cur:null,adm:false,adminEmail:'bravoeexcel@gmail.com',adminPassword:'admin123',adminCreated:true
+  users:[],cur:null,adm:false,
+  adminEmail:'bravoeexcel@gmail.com',adminPassword:'admin123',adminCreated:true
 };
-try{const s=localStorage.getItem('netiva_shop');if(s){const p=JSON.parse(s);const _savedEmail=p.adminEmail||'';const _savedPass=p.adminPassword||'';const _savedCreated=p.adminCreated||false;db={...db,...p};if(!_savedEmail)db.adminEmail='bravoeexcel@gmail.com';if(!_savedPass)db.adminPassword='admin123';if(!_savedCreated)db.adminCreated=true;if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
-function sv(){try{db.feeRate=FEE_RATE;localStorage.setItem('netiva_shop',JSON.stringify(db));}catch(e){}}
+
+let db = {...DB_DEFAULTS, products:[...DEFAULT_PRODS]};
+
+// ── Per-session state (never synced to Firestore) ─────────────────────────
+// db.cur (logged-in user), db.adm (admin flag) stay local per session only.
+// Everything else (products, referrers, users, adminEmail/Password, heroImage,
+// heroTextTitle, heroTextSub, feeRate) is synced globally via Firestore.
+
+const SYNC_KEYS = ['products','referrers','users','adminEmail','adminPassword',
+  'adminCreated','heroImage','heroTextTitle','heroTextSub','feeRate'];
+
+let _svPending = false;
+let _fbReady = false;
+
+// Save to Firestore (debounced 400ms)
+function sv(){
+  db.feeRate = FEE_RATE;
+  // Always keep localStorage as a fast local cache too
+  try{localStorage.setItem('netiva_shop', JSON.stringify(db));}catch(e){}
+  if(!_fbReady) return; // will be flushed once Firebase is ready
+  if(_svPending) return;
+  _svPending = true;
+  setTimeout(async ()=>{
+    _svPending = false;
+    try{
+      const payload={};
+      SYNC_KEYS.forEach(k=>{ if(db[k]!==undefined) payload[k]=db[k]; });
+      await window._fsSetDoc(window._storeDoc, payload, {merge:true});
+    }catch(e){ console.warn('Firestore write failed:',e); }
+  }, 400);
+}
+
+// Merge remote snapshot into local db (non-destructively for session state)
+function _applyRemote(data){
+  if(!data) return;
+  SYNC_KEYS.forEach(k=>{ if(data[k]!==undefined) db[k]=data[k]; });
+  if(!db.products?.length) db.products=[...DEFAULT_PRODS];
+  if(typeof db.feeRate==='number') FEE_RATE=db.feeRate;
+}
+
+// Show a loading overlay while we fetch initial data
+function _showLoader(){
+  document.getElementById('root').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;color:var(--color-text-secondary)">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="animation:spin 1s linear infinite">
+        <circle cx="16" cy="16" r="13" stroke="var(--color-border-secondary)" stroke-width="3"/>
+        <path d="M16 3a13 13 0 0 1 13 13" stroke="var(--color-text-primary)" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      <span style="font-size:13px">Loading store data…</span>
+    </div>`;
+}
+
+// Bootstrap: load from Firestore on startup, then subscribe to live updates
+async function _boot(){
+  _showLoader();
+  // Try local cache first for instant paint
+  try{
+    const cached=localStorage.getItem('netiva_shop');
+    if(cached){ const p=JSON.parse(cached); _applyRemote(p); }
+  }catch(e){}
+
+  // Fetch from Firestore
+  try{
+    const snap = await window._fsGetDoc(window._storeDoc);
+    if(snap.exists()){
+      _applyRemote(snap.data());
+    } else {
+      // First ever run — seed Firestore with defaults
+      const seed={};
+      SYNC_KEYS.forEach(k=>{ if(DB_DEFAULTS[k]!==undefined) seed[k]=DB_DEFAULTS[k]; });
+      seed.products=[...DEFAULT_PRODS];
+      await window._fsSetDoc(window._storeDoc, seed);
+    }
+  }catch(e){
+    console.warn('Firestore read failed, using local cache:',e);
+    // Show a non-blocking warning banner
+    const warn=document.createElement('div');
+    warn.style.cssText='position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#FFF3CD;border:1px solid #EAD0A8;color:#854F0B;font-size:12px;padding:8px 16px;border-radius:8px;z-index:9999;max-width:420px;text-align:center';
+    warn.innerHTML='⚠️ Could not reach the shared database. Changes may not sync until reconnected. <button onclick="this.parentNode.remove()" style="border:none;background:none;cursor:pointer;font-size:14px;margin-left:8px;color:#854F0B">×</button>';
+    document.body.appendChild(warn);
+  }
+
+  _fbReady = true;
+
+  // Subscribe to live updates from other browsers/devices
+  try{
+    window._fsOnSnapshot(window._storeDoc, (snap)=>{
+      if(!snap.exists()) return;
+      _applyRemote(snap.data());
+      // Re-render current view if not in admin session (avoid interrupting admin mid-edit)
+      if(!db.adm){ try{render();}catch(e){} }
+    });
+  }catch(e){ console.warn('Firestore listener failed:',e); }
+
+  // Initial render
+  go('shop');
+}
+
+// Wait for Firebase module to be ready, then boot
+if(window._firebaseReady){
+  _boot();
+} else {
+  window.addEventListener('firebaseReady', _boot, {once:true});
+  // Safety fallback: if Firebase never loads (e.g. offline), boot from cache after 3s
+  setTimeout(()=>{
+    if(!_fbReady){
+      _fbReady=false;
+      try{const cached=localStorage.getItem('netiva_shop');if(cached){const p=JSON.parse(cached);_applyRemote(p);}}catch(e){}
+      go('shop');
+    }
+  }, 3000);
+}
 
 function pName(p){return (lang==='zh'||lang==='zht')?(p.name_zh||p.name_en||''):(p.name_en||p.name_zh||'');}
 function pDesc(p){return (lang==='zh'||lang==='zht')?(p.desc_zh||p.desc_en||''):(p.desc_en||p.desc_zh||'');}
@@ -1282,7 +1430,7 @@ function saveAdminSettings(){const em=document.getElementById('stg-email').value
 function toggleFeeEdit(){const ed=document.getElementById('fee-edit'),disp=document.getElementById('fee-display');if(!ed||!disp)return;const isOpen=ed.style.display==='block';ed.style.display=isOpen?'none':'block';if(!isOpen){document.getElementById('fee-input').value=(FEE_RATE*100).toFixed(4).replace(/\.?0+$/,'');document.getElementById('fee-input').focus();}}
 function saveFeeRate(){const inp=document.getElementById('fee-input'),msg=document.getElementById('fee-msg');const v=parseFloat(inp.value);if(isNaN(v)||v<0||v>100){msg.innerHTML=`<div class="m e" style="font-size:11px;padding:4px 8px">${lang==='en'?'Enter 0–100':(lang==='zht'?'請輸入 0–100':'请输入 0–100')}</div>`;return;}FEE_RATE=parseFloat((v/100).toFixed(6));sv();document.getElementById('fee-display').textContent=(v).toFixed(2).replace(/\.?0+$/,'')+'%';document.getElementById('fee-edit').style.display='none';msg.innerHTML='';}
 
-go('shop');
+// Boot is handled by _boot() above — triggered once Firebase is ready
 </script>
 </body>
 </html>
