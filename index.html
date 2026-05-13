@@ -614,9 +614,9 @@ let db={
     {id:'r1',name:'陈志远',address:'广州市天河区',country:'中国',phone:'138-0001-0001',iMemberNo:'IH-10001',email:'chen@example.com',code:'CHEN-R1',note:'South China region',active:true,alipayQr:'',wechatQr:''},
     {id:'r2',name:'Lin Xiaoyan',address:'Pudong, Shanghai',country:'China',phone:'139-0002-0002',iMemberNo:'IH-10002',email:'lin@example.com',code:'LIN-R2',note:'Online channel',active:true,alipayQr:'',wechatQr:''},
   ],
-  users:[],cur:null,adm:false,adminEmail:'',adminPassword:''
+  users:[],cur:null,adm:false,adminEmail:'bravoeexcel@gmail.com',adminPassword:'admin123',adminCreated:true
 };
-try{const s=localStorage.getItem('netiva_shop');if(s){const p=JSON.parse(s);db={...db,...p};if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
+try{const s=localStorage.getItem('netiva_shop');if(s){const p=JSON.parse(s);const _savedEmail=p.adminEmail||'';const _savedPass=p.adminPassword||'';const _savedCreated=p.adminCreated||false;db={...db,...p};if(!_savedEmail)db.adminEmail='bravoeexcel@gmail.com';if(!_savedPass)db.adminPassword='admin123';if(!_savedCreated)db.adminCreated=true;if(!db.products?.length)db.products=[...DEFAULT_PRODS];if(typeof db.feeRate==='number')FEE_RATE=db.feeRate;}}catch(e){}
 function sv(){try{db.feeRate=FEE_RATE;localStorage.setItem('netiva_shop',JSON.stringify(db));}catch(e){}}
 
 function pName(p){return (lang==='zh'||lang==='zht')?(p.name_zh||p.name_en||''):(p.name_en||p.name_zh||'');}
