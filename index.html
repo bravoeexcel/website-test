@@ -686,22 +686,13 @@ const IMG_DOC_KEY = 'netiva_images';
 let _svPending = false;
 let _fbReady = false;
 
-// Save to Firestore (debounced 400ms)
-function _buildImgPayload(){
-  // Collect hero image + per-product image arrays into a flat structure
-  const p={};
-  if(db.heroImage!==undefined) p.heroImage=db.heroImage;
-  (db.products||[]).forEach(prod=>{
-    if(prod.imgs&&prod.imgs.length) p['pi_'+prod.id]=prod.imgs;
-    else if(prod.img) p['pi_'+prod.id]=[prod.img];
-    // referrer QR codes
-  });
-  (db.referrers||[]).forEach(ref=>{
-    if(ref.alipayQr) p['aqr_'+ref.id]=ref.alipayQr;
-    if(ref.wechatQr) p['wqr_'+ref.id]=ref.wechatQr;
-  });
-  return p;
-}
+// ── Image storage: one Firestore doc per product, one for hero, one per referrer ──
+// netiva/hero          → { heroImage: '...' }
+// netiva/img_p1        → { imgs: [...base64...] }
+// netiva/img_p2        → { imgs: [...base64...] }
+// netiva/ref_r1        → { alipayQr: '...', wechatQr: '...' }
+// This gives each item its own 1MB budget — no more size limits.
+
 function _buildMainPayload(){
   // Strip imgs/img from products and QRs from referrers — keep only metadata
   const payload={};
@@ -720,6 +711,29 @@ function _buildMainPayload(){
   });
   return payload;
 }
+
+// Apply a single product image doc { imgs:[...] } into db
+function _applyProdImgDoc(prodId, data){
+  if(!data) return;
+  const prod=(db.products||[]).find(p=>p.id===prodId);
+  if(!prod) return;
+  if(Array.isArray(data.imgs)){ prod.imgs=data.imgs; prod.img=data.imgs[0]||''; }
+}
+// Apply hero doc
+function _applyHeroDoc(data){
+  if(!data) return;
+  if(data.heroImage!==undefined) db.heroImage=data.heroImage;
+}
+// Apply referrer QR doc
+function _applyRefDoc(refId, data){
+  if(!data) return;
+  const ref=(db.referrers||[]).find(r=>r.id===refId);
+  if(!ref) return;
+  if(data.alipayQr!==undefined) ref.alipayQr=data.alipayQr;
+  if(data.wechatQr!==undefined) ref.wechatQr=data.wechatQr;
+}
+
+// Legacy: still support reading old shopimages doc during migration
 function _applyImgPayload(data){
   if(!data) return;
   if(data.heroImage!==undefined) db.heroImage=data.heroImage;
@@ -733,18 +747,36 @@ function _applyImgPayload(data){
   });
 }
 
-let _svPendingMain=false, _svPendingImg=false;
+// Build localStorage cache of all images (flat, for fast boot)
+function _buildLocalImgCache(){
+  const p={};
+  if(db.heroImage!==undefined) p.heroImage=db.heroImage;
+  (db.products||[]).forEach(prod=>{
+    if(prod.imgs&&prod.imgs.length) p['pi_'+prod.id]=prod.imgs;
+    else if(prod.img) p['pi_'+prod.id]=[prod.img];
+  });
+  (db.referrers||[]).forEach(ref=>{
+    if(ref.alipayQr) p['aqr_'+ref.id]=ref.alipayQr;
+    if(ref.wechatQr) p['wqr_'+ref.id]=ref.wechatQr;
+  });
+  return p;
+}
+
+let _svPendingMain=false;
+// Track pending per-doc image saves: { docId: timeoutId }
+const _svPendingImgDocs={};
 
 function sv(){
   db.feeRate = FEE_RATE;
-  // Fast local cache — split into two keys matching the two Firestore docs
+  // Fast local cache
   try{
     const mainSnap={...db, products:_buildMainPayload().products, referrers:_buildMainPayload().referrers};
     localStorage.setItem('netiva_shop', JSON.stringify(mainSnap));
-    localStorage.setItem(IMG_DOC_KEY, JSON.stringify(_buildImgPayload()));
+    localStorage.setItem(IMG_DOC_KEY, JSON.stringify(_buildLocalImgCache()));
   }catch(e){}
   if(!_fbReady) return;
-  // Debounced write — main metadata doc (fast, small)
+
+  // Debounced write — main metadata doc
   if(!_svPendingMain){
     _svPendingMain=true;
     setTimeout(async()=>{
@@ -753,17 +785,32 @@ function sv(){
       catch(e){ console.warn('Firestore main write failed:',e); }
     }, 400);
   }
-  // Debounced write — images doc (heavier, separate)
-  if(!_svPendingImg){
-    _svPendingImg=true;
-    setTimeout(async()=>{
-      _svPendingImg=false;
-      try{
-        const imgDoc=window._doc(window._fsdb,'netiva','shopimages');
-        await window._fsSetDoc(imgDoc, _buildImgPayload(), {merge:true});
-      }catch(e){ console.warn('Firestore image write failed:',e); }
-    }, 600);
-  }
+
+  // Write hero image to its own doc
+  _svImgDoc('hero', {heroImage: db.heroImage||''});
+
+  // Write each product's images to its own doc
+  (db.products||[]).forEach(prod=>{
+    const imgs=prod.imgs&&prod.imgs.length ? prod.imgs : (prod.img ? [prod.img] : []);
+    _svImgDoc('img_'+prod.id, {imgs});
+  });
+
+  // Write each referrer's QRs to its own doc
+  (db.referrers||[]).forEach(ref=>{
+    _svImgDoc('ref_'+ref.id, {alipayQr:ref.alipayQr||'', wechatQr:ref.wechatQr||''});
+  });
+}
+
+// Debounced write for a single image doc (600ms)
+function _svImgDoc(docId, payload){
+  if(_svPendingImgDocs[docId]) clearTimeout(_svPendingImgDocs[docId]);
+  _svPendingImgDocs[docId]=setTimeout(async()=>{
+    delete _svPendingImgDocs[docId];
+    try{
+      const ref=window._doc(window._fsdb,'netiva',docId);
+      await window._fsSetDoc(ref, payload, {merge:true});
+    }catch(e){ console.warn('Firestore img write failed ('+docId+'):',e); }
+  }, 600);
 }
 
 // Merge remote main-doc snapshot into local db.
@@ -817,13 +864,12 @@ async function _boot(){
   try{
     const cached=localStorage.getItem('netiva_shop');
     if(cached){ const p=JSON.parse(cached); _applyRemote(p); hadCache=true; }
-    // Also restore cached images
+    // Also restore cached images (flat legacy format works for both old and new)
     const cachedImgs=localStorage.getItem(IMG_DOC_KEY);
     if(cachedImgs){ _applyImgPayload(JSON.parse(cachedImgs)); }
   }catch(e){}
 
   if(hadCache){
-    // Render immediately from cache — no spinner
     _fbReady=true;
     go('shop');
   } else {
@@ -838,7 +884,6 @@ async function _boot(){
     } else {
       // First ever run — seed Firestore with defaults
       const mainSeed=_buildMainPayload();
-      // Ensure products are set from defaults
       mainSeed.products=DEFAULT_PRODS.map(p=>{const{img,imgs,...r}=p;return r;});
       await window._fsSetDoc(window._storeDoc, mainSeed);
     }
@@ -853,20 +898,44 @@ async function _boot(){
   }
 
   _fbReady=true;
-  // Render with fresh metadata (images may still be loading)
   try{ go('shop'); }catch(e){}
 
-  // ── Pass 2: fetch images doc in background (non-blocking) ────────────────
+  // ── Pass 2: fetch all image docs in background (non-blocking) ────────────
   (async()=>{
     try{
-      const imgDocRef=window._doc(window._fsdb,'netiva','shopimages');
-      const imgSnap=await window._fsGetDoc(imgDocRef);
-      if(imgSnap.exists()){
-        _applyImgPayload(imgSnap.data());
-        try{localStorage.setItem(IMG_DOC_KEY, JSON.stringify(imgSnap.data()));}catch(e){}
-        // Re-render shop only — images are now available
-        if(!db.adm){ try{render();}catch(e){} }
-      }
+      // Fetch hero image doc
+      const heroRef=window._doc(window._fsdb,'netiva','hero');
+      const heroSnap=await window._fsGetDoc(heroRef);
+      if(heroSnap.exists()) _applyHeroDoc(heroSnap.data());
+
+      // Fetch per-product image docs
+      await Promise.all((db.products||[]).map(async prod=>{
+        try{
+          const ref=window._doc(window._fsdb,'netiva','img_'+prod.id);
+          const snap=await window._fsGetDoc(ref);
+          if(snap.exists()) _applyProdImgDoc(prod.id, snap.data());
+        }catch(e){ console.warn('img read failed for '+prod.id,e); }
+      }));
+
+      // Fetch per-referrer QR docs
+      await Promise.all((db.referrers||[]).map(async ref=>{
+        try{
+          const docRef=window._doc(window._fsdb,'netiva','ref_'+ref.id);
+          const snap=await window._fsGetDoc(docRef);
+          if(snap.exists()) _applyRefDoc(ref.id, snap.data());
+        }catch(e){ console.warn('ref img read failed for '+ref.id,e); }
+      }));
+
+      // Also try old shopimages doc for migration (in case data is still there)
+      try{
+        const oldRef=window._doc(window._fsdb,'netiva','shopimages');
+        const oldSnap=await window._fsGetDoc(oldRef);
+        if(oldSnap.exists()) _applyImgPayload(oldSnap.data());
+      }catch(e){}
+
+      // Cache all images locally
+      try{localStorage.setItem(IMG_DOC_KEY, JSON.stringify(_buildLocalImgCache()));}catch(e){}
+      if(!db.adm){ try{render();}catch(e){} }
     }catch(e){ console.warn('Firestore image read failed:',e); }
   })();
 
@@ -879,15 +948,42 @@ async function _boot(){
     });
   }catch(e){ console.warn('Firestore main listener failed:',e); }
 
+  // Live listener for hero image
   try{
-    const imgDocRef=window._doc(window._fsdb,'netiva','shopimages');
-    window._fsOnSnapshot(imgDocRef,(snap)=>{
+    const heroRef=window._doc(window._fsdb,'netiva','hero');
+    window._fsOnSnapshot(heroRef,(snap)=>{
       if(!snap.exists()) return;
-      _applyImgPayload(snap.data());
-      try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(snap.data()));}catch(e){}
+      _applyHeroDoc(snap.data());
+      try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
       if(!db.adm){ try{render();}catch(e){} }
     });
-  }catch(e){ console.warn('Firestore image listener failed:',e); }
+  }catch(e){ console.warn('Firestore hero listener failed:',e); }
+
+  // Live listeners for each product image doc
+  (db.products||[]).forEach(prod=>{
+    try{
+      const ref=window._doc(window._fsdb,'netiva','img_'+prod.id);
+      window._fsOnSnapshot(ref,(snap)=>{
+        if(!snap.exists()) return;
+        _applyProdImgDoc(prod.id, snap.data());
+        try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
+        if(!db.adm){ try{render();}catch(e){} }
+      });
+    }catch(e){ console.warn('Firestore prod img listener failed:',e); }
+  });
+
+  // Live listeners for each referrer QR doc
+  (db.referrers||[]).forEach(ref=>{
+    try{
+      const docRef=window._doc(window._fsdb,'netiva','ref_'+ref.id);
+      window._fsOnSnapshot(docRef,(snap)=>{
+        if(!snap.exists()) return;
+        _applyRefDoc(ref.id, snap.data());
+        try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
+        if(!db.adm){ try{render();}catch(e){} }
+      });
+    }catch(e){ console.warn('Firestore ref listener failed:',e); }
+  });
 }
 
 // Wait for Firebase module to be ready, then boot
