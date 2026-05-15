@@ -321,7 +321,7 @@
       .fpill { padding: 7px 14px; font-size: 13px; }
     }
   </style>
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (type="module" is always deferred, so _fb and _boot are defined by the time this runs) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -339,15 +339,15 @@
     const fsdb = getFirestore(app);
     const STORE_DOC = doc(fsdb, 'netiva', 'shopdata');
 
-    // Expose to global scope for the main script
-    window._fsdb = fsdb;
-    window._storeDoc = STORE_DOC;
-    window._fsSetDoc = setDoc;
-    window._fsGetDoc = getDoc;
-    window._fsOnSnapshot = onSnapshot;
-    window._doc = doc;
-    window._firebaseReady = true;
-    window.dispatchEvent(new Event('firebaseReady'));
+    // Modules are always deferred — the body <script> has already run by now,
+    // so _fb and _boot() are guaranteed to exist. Populate directly, no events needed.
+    window._fb.fsdb = fsdb;
+    window._fb.storeDoc = STORE_DOC;
+    window._fb.setDoc = setDoc;
+    window._fb.getDoc = getDoc;
+    window._fb.onSnapshot = onSnapshot;
+    window._fb.doc = doc;
+    window._boot();
   </script>
 </head>
 <body>
@@ -685,6 +685,10 @@ const IMG_DOC_KEY = 'netiva_images';
 
 let _svPending = false;
 let _fbReady = false;
+// Firebase API references — populated by the module script (which is always deferred,
+// so it runs after this script and can safely write to window._fb)
+window._fb = { fsdb:null, storeDoc:null, setDoc:null, getDoc:null, onSnapshot:null, doc:null };
+const _fb = window._fb;
 
 // ── Image storage: one Firestore doc per product, one for hero, one per referrer ──
 // netiva/hero          → { heroImage: '...' }
@@ -790,29 +794,77 @@ function sv(){
     _svPendingMain=true;
     setTimeout(async()=>{
       _svPendingMain=false;
-      try{ await window._fsSetDoc(window._storeDoc, _buildMainPayload(), {merge:true}); }
+      if(typeof _fb.setDoc !== 'function') return; // Firebase not ready yet
+      try{ await _fb.setDoc(_fb.storeDoc, _buildMainPayload(), {merge:true}); }
       catch(e){ console.warn('Firestore main write failed:',e); }
     }, 400);
   }
 
-  // Write hero image to its own doc
-  _svImgDoc('hero', {heroImage: db.heroImage||''});
+  // Write hero image — only when there is actually an image to save
+  if(db.heroImage) _svImgDoc('hero', {heroImage: db.heroImage});
 
-  // Write each product's images to its own doc
+  // Write each product's images/text — only when there is real content to save
   (db.products||[]).forEach(prod=>{
     const imgs=prod.imgs&&prod.imgs.length ? prod.imgs : (prod.img ? [prod.img] : []);
-    _svImgDoc('img_'+prod.id, {imgs});
+    if(imgs.length) _svImgDoc('img_'+prod.id, {imgs});
+    const hasText=prod.content_en||prod.content_zh||prod.content_zht;
+    if(hasText) _svImgDoc('text_'+prod.id, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
   });
 
-  // Write each product's extended text to its own doc
-  (db.products||[]).forEach(prod=>{
-    _svImgDoc('text_'+prod.id, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
-  });
-
-  // Write each referrer's QRs to its own doc
+  // Write each referrer's QRs — only when there is a QR image to save
   (db.referrers||[]).forEach(ref=>{
-    _svImgDoc('ref_'+ref.id, {alipayQr:ref.alipayQr||'', wechatQr:ref.wechatQr||''});
+    if(ref.alipayQr||ref.wechatQr) _svImgDoc('ref_'+ref.id, {alipayQr:ref.alipayQr||'', wechatQr:ref.wechatQr||''});
   });
+}
+
+// Track which doc IDs already have live listeners so we never double-register
+const _liveListeners=new Set();
+
+// Register onSnapshot listeners for a product doc that didn't exist at boot time
+function _attachProdListeners(prod){
+  if(!_fb.onSnapshot||!_fb.fsdb) return;
+  const imgDocId='img_'+prod.id;
+  const txtDocId='text_'+prod.id;
+  if(!_liveListeners.has(imgDocId)){
+    _liveListeners.add(imgDocId);
+    try{
+      const ref=_fb.doc(_fb.fsdb,'netiva',imgDocId);
+      _fb.onSnapshot(ref,(snap)=>{
+        if(!snap.exists()) return;
+        _applyProdImgDoc(prod.id,snap.data());
+        try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
+        if(!db.adm){try{render();}catch(e){}}
+      });
+    }catch(e){console.warn('listener attach failed for '+imgDocId,e);}
+  }
+  if(!_liveListeners.has(txtDocId)){
+    _liveListeners.add(txtDocId);
+    try{
+      const ref=_fb.doc(_fb.fsdb,'netiva',txtDocId);
+      _fb.onSnapshot(ref,(snap)=>{
+        if(!snap.exists()) return;
+        _applyProdTextDoc(prod.id,snap.data());
+        if(!db.adm){try{render();}catch(e){}}
+      });
+    }catch(e){console.warn('listener attach failed for '+txtDocId,e);}
+  }
+}
+
+// Register onSnapshot listener for a referrer QR doc
+function _attachRefListener(ref){
+  if(!_fb.onSnapshot||!_fb.fsdb) return;
+  const docId='ref_'+ref.id;
+  if(_liveListeners.has(docId)) return;
+  _liveListeners.add(docId);
+  try{
+    const docRef=_fb.doc(_fb.fsdb,'netiva',docId);
+    _fb.onSnapshot(docRef,(snap)=>{
+      if(!snap.exists()) return;
+      _applyRefDoc(ref.id,snap.data());
+      try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
+      if(!db.adm){try{render();}catch(e){}}
+    });
+  }catch(e){console.warn('listener attach failed for '+docId,e);}
 }
 
 // Debounced write for a single image doc (600ms)
@@ -820,9 +872,10 @@ function _svImgDoc(docId, payload){
   if(_svPendingImgDocs[docId]) clearTimeout(_svPendingImgDocs[docId]);
   _svPendingImgDocs[docId]=setTimeout(async()=>{
     delete _svPendingImgDocs[docId];
+    if(typeof _fb.setDoc !== 'function') return; // Firebase not ready yet
     try{
-      const ref=window._doc(window._fsdb,'netiva',docId);
-      await window._fsSetDoc(ref, payload, {merge:true});
+      const ref=_fb.doc(_fb.fsdb,'netiva',docId);
+      await _fb.setDoc(ref, payload, {merge:true});
     }catch(e){ console.warn('Firestore img write failed ('+docId+'):',e); }
   }, 600);
 }
@@ -872,7 +925,7 @@ function _showLoader(){
 }
 
 // Bootstrap: instant paint from cache, then hydrate from Firestore in two passes
-async function _boot(){
+window._boot = async function _boot(){
   // ── Pass 0: render instantly from localStorage (zero network wait) ────────
   let hadCache=false;
   try{
@@ -884,7 +937,6 @@ async function _boot(){
   }catch(e){}
 
   if(hadCache){
-    _fbReady=true;
     go('shop');
   } else {
     _showLoader();
@@ -892,14 +944,14 @@ async function _boot(){
 
   // ── Pass 1: fetch lightweight metadata doc (no images) ───────────────────
   try{
-    const snap = await window._fsGetDoc(window._storeDoc);
+    const snap = await _fb.getDoc(_fb.storeDoc);
     if(snap.exists()){
       _applyRemote(snap.data());
     } else {
       // First ever run — seed Firestore with defaults
       const mainSeed=_buildMainPayload();
       mainSeed.products=DEFAULT_PRODS.map(p=>{const{img,imgs,...r}=p;return r;});
-      await window._fsSetDoc(window._storeDoc, mainSeed);
+      await _fb.setDoc(_fb.storeDoc, mainSeed);
     }
   }catch(e){
     console.warn('Firestore main read failed:',e);
@@ -918,15 +970,15 @@ async function _boot(){
   (async()=>{
     try{
       // Fetch hero image doc
-      const heroRef=window._doc(window._fsdb,'netiva','hero');
-      const heroSnap=await window._fsGetDoc(heroRef);
+      const heroRef=_fb.doc(_fb.fsdb,'netiva','hero');
+      const heroSnap=await _fb.getDoc(heroRef);
       if(heroSnap.exists()) _applyHeroDoc(heroSnap.data());
 
       // Fetch per-product image docs
       await Promise.all((db.products||[]).map(async prod=>{
         try{
-          const ref=window._doc(window._fsdb,'netiva','img_'+prod.id);
-          const snap=await window._fsGetDoc(ref);
+          const ref=_fb.doc(_fb.fsdb,'netiva','img_'+prod.id);
+          const snap=await _fb.getDoc(ref);
           if(snap.exists()) _applyProdImgDoc(prod.id, snap.data());
         }catch(e){ console.warn('img read failed for '+prod.id,e); }
       }));
@@ -934,8 +986,8 @@ async function _boot(){
       // Fetch per-product extended text docs
       await Promise.all((db.products||[]).map(async prod=>{
         try{
-          const ref=window._doc(window._fsdb,'netiva','text_'+prod.id);
-          const snap=await window._fsGetDoc(ref);
+          const ref=_fb.doc(_fb.fsdb,'netiva','text_'+prod.id);
+          const snap=await _fb.getDoc(ref);
           if(snap.exists()) _applyProdTextDoc(prod.id, snap.data());
         }catch(e){ console.warn('text read failed for '+prod.id,e); }
       }));
@@ -943,16 +995,16 @@ async function _boot(){
       // Fetch per-referrer QR docs
       await Promise.all((db.referrers||[]).map(async ref=>{
         try{
-          const docRef=window._doc(window._fsdb,'netiva','ref_'+ref.id);
-          const snap=await window._fsGetDoc(docRef);
+          const docRef=_fb.doc(_fb.fsdb,'netiva','ref_'+ref.id);
+          const snap=await _fb.getDoc(docRef);
           if(snap.exists()) _applyRefDoc(ref.id, snap.data());
         }catch(e){ console.warn('ref img read failed for '+ref.id,e); }
       }));
 
       // Also try old shopimages doc for migration (in case data is still there)
       try{
-        const oldRef=window._doc(window._fsdb,'netiva','shopimages');
-        const oldSnap=await window._fsGetDoc(oldRef);
+        const oldRef=_fb.doc(_fb.fsdb,'netiva','shopimages');
+        const oldSnap=await _fb.getDoc(oldRef);
         if(oldSnap.exists()) _applyImgPayload(oldSnap.data());
       }catch(e){}
 
@@ -964,7 +1016,7 @@ async function _boot(){
 
   // ── Live listeners ────────────────────────────────────────────────────────
   try{
-    window._fsOnSnapshot(window._storeDoc, (snap)=>{
+    _fb.onSnapshot(_fb.storeDoc, (snap)=>{
       if(!snap.exists()) return;
       _applyRemote(snap.data());
       if(!db.adm){ try{render();}catch(e){} }
@@ -973,8 +1025,8 @@ async function _boot(){
 
   // Live listener for hero image
   try{
-    const heroRef=window._doc(window._fsdb,'netiva','hero');
-    window._fsOnSnapshot(heroRef,(snap)=>{
+    const heroRef=_fb.doc(_fb.fsdb,'netiva','hero');
+    _fb.onSnapshot(heroRef,(snap)=>{
       if(!snap.exists()) return;
       _applyHeroDoc(snap.data());
       try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
@@ -982,50 +1034,25 @@ async function _boot(){
     });
   }catch(e){ console.warn('Firestore hero listener failed:',e); }
 
-  // Live listeners for each product image doc
-  (db.products||[]).forEach(prod=>{
-    try{
-      const ref=window._doc(window._fsdb,'netiva','img_'+prod.id);
-      window._fsOnSnapshot(ref,(snap)=>{
-        if(!snap.exists()) return;
-        _applyProdImgDoc(prod.id, snap.data());
-        try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
-        if(!db.adm){ try{render();}catch(e){} }
-      });
-    }catch(e){ console.warn('Firestore prod img listener failed:',e); }
-  });
+  // Live listeners for each product image/text doc (uses dedup helper)
+  (db.products||[]).forEach(prod=>{ _attachProdListeners(prod); });
 
-  // Live listeners for each referrer QR doc
-  (db.referrers||[]).forEach(ref=>{
-    try{
-      const docRef=window._doc(window._fsdb,'netiva','ref_'+ref.id);
-      window._fsOnSnapshot(docRef,(snap)=>{
-        if(!snap.exists()) return;
-        _applyRefDoc(ref.id, snap.data());
-        try{localStorage.setItem(IMG_DOC_KEY,JSON.stringify(_buildLocalImgCache()));}catch(e){}
-        if(!db.adm){ try{render();}catch(e){} }
-      });
-    }catch(e){ console.warn('Firestore ref listener failed:',e); }
-  });
+  // Live listeners for each referrer QR doc (uses dedup helper)
+  (db.referrers||[]).forEach(ref=>{ _attachRefListener(ref); });
 }
 
 // Wait for Firebase module to be ready, then boot
-if(window._firebaseReady){
-  _boot();
-} else {
-  window.addEventListener('firebaseReady', _boot, {once:true});
-  // Safety fallback: if Firebase never loads (e.g. offline), boot from cache after 3s
-  setTimeout(()=>{
-    if(!_fbReady){
-      _fbReady=true;
-      try{
-        const cached=localStorage.getItem('netiva_shop');if(cached){const p=JSON.parse(cached);_applyRemote(p);}
-        const cachedImgs=localStorage.getItem(IMG_DOC_KEY);if(cachedImgs){_applyImgPayload(JSON.parse(cachedImgs));}
-      }catch(e){}
-      go('shop');
-    }
-  }, 3000);
-}
+// Safety fallback: if Firebase module never loads (e.g. blocked/offline), boot from cache after 3s
+setTimeout(()=>{
+  if(!_fbReady){
+    _fbReady=true;
+    try{
+      const cached=localStorage.getItem('netiva_shop');if(cached){const p=JSON.parse(cached);_applyRemote(p);}
+      const cachedImgs=localStorage.getItem(IMG_DOC_KEY);if(cachedImgs){_applyImgPayload(JSON.parse(cachedImgs));}
+    }catch(e){}
+    go('shop');
+  }
+}, 3000);
 
 function pName(p){return lang==='zht'?(p.name_zht||p.name_zh||p.name_en||''):lang==='zh'?(p.name_zh||p.name_zht||p.name_en||''):(p.name_en||p.name_zh||p.name_zht||'');}
 function pDesc(p){return lang==='zht'?(p.desc_zht||p.desc_zh||p.desc_en||''):lang==='zh'?(p.desc_zh||p.desc_zht||p.desc_en||''):(p.desc_en||p.desc_zh||p.desc_zht||'');}
@@ -1710,7 +1737,7 @@ function handleProdImgs(e,pfx){
   });
 }
 function startAddProd(){editingProdId='new';rAdmProds(document.getElementById('atc'));const slot=document.getElementById('prod-add-slot');slot.innerHTML=`<div class="prod-edit-form"><div style="font-size:14px;font-weight:500;margin-bottom:12px">${t('addProductTitle')}</div><div id="add-prod-msg"></div>${prodFormHtml(null,'np-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveNewProd()">${t('saveProduct')}</button><button class="btn sm" onclick="editingProdId=null;rAdmProds(document.getElementById('atc'))">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}db.products.push({id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window['np-imgs']=undefined;window['np-variants']=undefined;sv();editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
+function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _newProd={id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants};db.products.push(_newProd);window['np-imgs']=undefined;window['np-variants']=undefined;sv();_attachProdListeners(_newProd);editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
 function startEditProd(id){editingProdId=editingProdId===id?null:id;rAdmProds(document.getElementById('atc'));if(editingProdId===id){const slot=document.getElementById('prod-edit-'+id),p=db.products.find(x=>x.id===id);slot.innerHTML=`<div class="prod-edit-form"><div id="ep-msg-${id}"></div>${prodFormHtml(p,'ep'+id+'-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveEditProd('${id}')">${t('saveChanges')}</button><button class="btn sm" onclick="startEditProd('${id}')">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}}
 function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),name_zht=document.getElementById(pfx+'name_zht').value.trim(),desc_en=getRteHtml(pfx+'desc_en'),desc_zh=getRteHtml(pfx+'desc_zh'),desc_zht=getRteHtml(pfx+'desc_zht'),content_en=getRteHtml(pfx+'content_en'),content_zh=getRteHtml(pfx+'content_zh'),content_zht=getRteHtml(pfx+'content_zht'),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),tag_zht=document.getElementById(pfx+'tag_zht').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),active=document.getElementById(pfx+'active').value==='1',imgs=window[pfx+'imgs']!==undefined?window[pfx+'imgs']:(db.products.find(x=>x.id===id)?.imgs||[]),img=imgs[0]||(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window[pfx+'imgs']=undefined;window[pfx+'variants']=undefined;sv();editingProdId=null;rAdmProds(document.getElementById('atc'));}
 function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.active=!p.active;sv();rAdmProds(document.getElementById('atc'));}
@@ -1727,7 +1754,7 @@ function rAdmRefs(tc){tc.innerHTML=db.referrers.length===0?`<div style="text-ali
 function toggleEditRef(id){editingRefId=editingRefId===id?null:id;rAdmRefs(document.getElementById('atc'));}
 function saveEditRef(id){const pfx='er'+id+'-',msg=document.getElementById('er-msg-'+id),d=collectRefFields(pfx,id);if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code&&r.id!==id)){msg.innerHTML=`<div class="m e">${t('errorDupCode')}</div>`;return;}Object.assign(refById(id),d);window['er'+id+'-alipayQr']=undefined;window['er'+id+'-wechatQr']=undefined;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmAddRef(tc){tc.innerHTML=`<div style="max-width:580px"><div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem"><div style="font-size:14px;font-weight:500;margin-bottom:4px">${t('addReferrer')}</div><div id="am"></div>${refFormFields(null,'nr-')}<button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:12px" onclick="addRef()">${t('saveReferrer')}</button></div><div class="m i" style="font-size:12px">${lang==='en'?'Referrers are not member accounts and cannot log in to the shop.':(lang==='zht'?'推薦人不是會員帳戶，無法登入商店。':'推荐人不是会员账户，无法登录商店。')}</div></div>`;}
-function addRef(){const msg=document.getElementById('am'),d=collectRefFields('nr-');if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code)){msg.innerHTML=`<div class="m e">${t('errorCodeExists')}</div>`;return;}db.referrers.push({id:'r'+Date.now(),...d,created:new Date().toLocaleDateString()});window['nr-alipayQr']=undefined;window['nr-wechatQr']=undefined;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Referrer added! Code: ':(lang==='zht'?'推薦人已新增！推薦碼：':'推荐人已添加！推荐码：')}<span class="code">${d.code}</span></div>`;setTimeout(()=>{atab='referrers';editingRefId=null;rAdm(document.getElementById('root'));},1200);}
+function addRef(){const msg=document.getElementById('am'),d=collectRefFields('nr-');if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code)){msg.innerHTML=`<div class="m e">${t('errorCodeExists')}</div>`;return;}const _newRef={id:'r'+Date.now(),...d,created:new Date().toLocaleDateString()};db.referrers.push(_newRef);window['nr-alipayQr']=undefined;window['nr-wechatQr']=undefined;sv();_attachRefListener(_newRef);msg.innerHTML=`<div class="m s">${lang==='en'?'Referrer added! Code: ':(lang==='zht'?'推薦人已新增！推薦碼：':'推荐人已添加！推荐码：')}<span class="code">${d.code}</span></div>`;setTimeout(()=>{atab='referrers';editingRefId=null;rAdm(document.getElementById('root'));},1200);}
 function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.active=!r.active;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmMem(tc){tc.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>${t('memberName')}</th><th>${t('email')}</th><th>${t('referrer')}</th><th>${t('referralCode')}</th><th>${t('regDate')}</th><th>${t('orders')}</th></tr></thead><tbody>${db.users.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:2rem">${t('noMembers')}</td></tr>`:db.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="ava" style="width:24px;height:24px;font-size:10px">${ini(u.name)}</div><span style="font-weight:500">${u.name}</span></div></td><td style="color:var(--color-text-secondary)">${u.email}</td><td><span class="bdg a">${u.referrerName}</span></td><td><span class="code">${refById(u.referrerId)?.code||'—'}</span></td><td style="color:var(--color-text-secondary)">${u.joined}</td><td>${u.orders||0}</td></tr>`).join('')}</tbody></table></div>`;}
