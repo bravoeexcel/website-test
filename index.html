@@ -775,13 +775,49 @@ function _buildLocalImgCache(){
   return p;
 }
 
-let _svPendingMain=false;
-// Track pending per-doc image saves: { docId: timeoutId }
-const _svPendingImgDocs={};
+// ── Dirty-doc tracking ───────────────────────────────────────────────────────
+// Instead of re-uploading every doc on every sv() call, we track exactly which
+// Firestore docs have pending changes and flush only those.
+const _dirtyDocs={}; // docId -> payload to write
+let _flushTimer=null;
 
-function sv(){
+// Mark a specific doc as needing a write. payload=null means "main store doc".
+function _markDirty(docId, payload){
+  _dirtyDocs[docId]=payload;
+}
+
+// Flush all dirty docs to Firestore immediately (no delay).
+async function _flushDirty(){
+  if(_flushTimer){ clearTimeout(_flushTimer); _flushTimer=null; }
+  if(typeof _fb?.setDoc !== 'function') return;
+  const ids=Object.keys(_dirtyDocs);
+  if(!ids.length) return;
+  // Snapshot and clear immediately so concurrent calls don't double-write
+  const toWrite={..._dirtyDocs};
+  ids.forEach(id=>{ delete _dirtyDocs[id]; });
+  await Promise.all(ids.map(async id=>{
+    try{
+      if(id==='__main__'){
+        await _fb.setDoc(_fb.storeDoc, _buildMainPayload(), {merge:true});
+      } else {
+        const ref=_fb.doc(_fb.fsdb,'netiva',id);
+        await _fb.setDoc(ref, toWrite[id], {merge:true});
+      }
+    }catch(e){ console.warn('Firestore write failed ('+id+'):',e); }
+  }));
+}
+
+// Debounced flush — used for rapid-fire changes (e.g. typing in a field).
+function _scheduleDirtyFlush(delayMs=150){
+  if(_flushTimer) clearTimeout(_flushTimer);
+  _flushTimer=setTimeout(()=>{ _flushTimer=null; _flushDirty(); }, delayMs);
+}
+
+// sv(immediate) — call with immediate=true from explicit "Save" button handlers
+// so changes appear for other users without any delay.
+function sv(immediate=false){
   db.feeRate = FEE_RATE;
-  // Fast local cache
+  // Always update localStorage instantly
   try{
     const mainSnap={...db, products:_buildMainPayload().products, referrers:_buildMainPayload().referrers};
     localStorage.setItem('netiva_shop', JSON.stringify(mainSnap));
@@ -789,32 +825,50 @@ function sv(){
   }catch(e){}
   if(!_fbReady) return;
 
-  // Debounced write — main metadata doc
-  if(!_svPendingMain){
-    _svPendingMain=true;
-    setTimeout(async()=>{
-      _svPendingMain=false;
-      if(typeof _fb.setDoc !== 'function') return; // Firebase not ready yet
-      try{ await _fb.setDoc(_fb.storeDoc, _buildMainPayload(), {merge:true}); }
-      catch(e){ console.warn('Firestore main write failed:',e); }
-    }, 400);
-  }
+  // Main metadata doc — always dirty when sv() is called
+  _markDirty('__main__', null);
 
-  // Write hero image — only when there is actually an image to save
-  if(db.heroImage) _svImgDoc('hero', {heroImage: db.heroImage});
+  // Hero image
+  if(db.heroImage) _markDirty('hero', {heroImage: db.heroImage});
 
-  // Write each product's images/text — only when there is real content to save
+  // Only dirty the image/text docs for products that have content
+  // (we don't re-dirty every product — callers use svProd() for targeted writes)
   (db.products||[]).forEach(prod=>{
     const imgs=prod.imgs&&prod.imgs.length ? prod.imgs : (prod.img ? [prod.img] : []);
-    if(imgs.length) _svImgDoc('img_'+prod.id, {imgs});
+    if(imgs.length) _markDirty('img_'+prod.id, {imgs});
     const hasText=prod.content_en||prod.content_zh||prod.content_zht;
-    if(hasText) _svImgDoc('text_'+prod.id, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
+    if(hasText) _markDirty('text_'+prod.id, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
   });
 
-  // Write each referrer's QRs — only when there is a QR image to save
   (db.referrers||[]).forEach(ref=>{
-    if(ref.alipayQr||ref.wechatQr) _svImgDoc('ref_'+ref.id, {alipayQr:ref.alipayQr||'', wechatQr:ref.wechatQr||''});
+    if(ref.alipayQr||ref.wechatQr) _markDirty('ref_'+ref.id, {alipayQr:ref.alipayQr||'', wechatQr:ref.wechatQr||''});
   });
+
+  if(immediate){ _flushDirty(); }
+  else { _scheduleDirtyFlush(150); }
+}
+
+// Targeted save for a single product — only uploads docs that belong to it.
+// Pass immediate=true from explicit Save button handlers.
+function svProd(prodId, immediate=false){
+  db.feeRate = FEE_RATE;
+  try{
+    const mainSnap={...db, products:_buildMainPayload().products, referrers:_buildMainPayload().referrers};
+    localStorage.setItem('netiva_shop', JSON.stringify(mainSnap));
+    localStorage.setItem(IMG_DOC_KEY, JSON.stringify(_buildLocalImgCache()));
+  }catch(e){}
+  if(!_fbReady) return;
+
+  _markDirty('__main__', null);
+  const prod=(db.products||[]).find(p=>p.id===prodId);
+  if(prod){
+    const imgs=prod.imgs&&prod.imgs.length ? prod.imgs : (prod.img ? [prod.img] : []);
+    if(imgs.length) _markDirty('img_'+prodId, {imgs});
+    const hasText=prod.content_en||prod.content_zh||prod.content_zht;
+    if(hasText) _markDirty('text_'+prodId, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
+  }
+  if(immediate){ _flushDirty(); }
+  else { _scheduleDirtyFlush(150); }
 }
 
 // Track which doc IDs already have live listeners so we never double-register
@@ -881,18 +935,7 @@ function _attachRefListener(ref){
   }catch(e){console.warn('listener attach failed for '+docId,e);}
 }
 
-// Debounced write for a single image doc (600ms)
-function _svImgDoc(docId, payload){
-  if(_svPendingImgDocs[docId]) clearTimeout(_svPendingImgDocs[docId]);
-  _svPendingImgDocs[docId]=setTimeout(async()=>{
-    delete _svPendingImgDocs[docId];
-    if(typeof _fb.setDoc !== 'function') return; // Firebase not ready yet
-    try{
-      const ref=_fb.doc(_fb.fsdb,'netiva',docId);
-      await _fb.setDoc(ref, payload, {merge:true});
-    }catch(e){ console.warn('Firestore img write failed ('+docId+'):',e); }
-  }, 600);
-}
+
 
 // Merge remote main-doc snapshot into local db.
 // Images live in a separate doc and are applied via _applyImgPayload().
@@ -1251,17 +1294,17 @@ function saveHeroText(){
   if(!title&&!sub){document.getElementById('hero-edit-msg').innerHTML='<div class="m e" style="font-size:12px">Please enter at least a title or subtitle.</div>';return;}
   if(title)db.heroTextTitle=title;
   if(sub)db.heroTextSub=sub;
-  sv();
+  sv(true);
   toggleHeroEdit();
   rShop(document.getElementById('root'));
 }
 function handleHeroImgInline(e){
   const f=e.target.files[0];if(!f)return;
   const rd=new FileReader();
-  rd.onload=ev=>{db.heroImage=ev.target.result;sv();rShop(document.getElementById('root'));setTimeout(()=>{const p=document.getElementById('hero-edit-panel');if(p)p.style.display='flex';},50);};
+  rd.onload=ev=>{db.heroImage=ev.target.result;sv(true);rShop(document.getElementById('root'));setTimeout(()=>{const p=document.getElementById('hero-edit-panel');if(p)p.style.display='flex';},50);};
   rd.readAsDataURL(f);
 }
-function removeHeroImgInline(){db.heroImage='';sv();rShop(document.getElementById('root'));setTimeout(()=>{const p=document.getElementById('hero-edit-panel');if(p)p.style.display='flex';},50);}
+function removeHeroImgInline(){db.heroImage='';sv(true);rShop(document.getElementById('root'));setTimeout(()=>{const p=document.getElementById('hero-edit-panel');if(p)p.style.display='flex';},50);}
 function rShopProducts(){
   const grid=document.getElementById('mp');if(!grid)return;
   const filtered=db.products.filter(p=>p.active);
@@ -1457,7 +1500,7 @@ function orderDone(totalCny,totUsd){
   const u=db.cur;cart=[];
   const idx=db.users.findIndex(x=>x.id===u.id);
   if(idx>-1){db.users[idx].orders=(db.users[idx].orders||0)+1;db.cur=db.users[idx];}
-  sv();rNav();
+  sv(true);rNav();
   document.getElementById('root').innerHTML=`<div style="max-width:420px;margin:4rem auto;padding:0 1.5rem;text-align:center"><div style="font-size:44px;margin-bottom:1rem">🎉</div><div style="font-size:20px;font-weight:500;margin-bottom:8px">${t('thankYou')}</div><div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:1.5rem;line-height:1.7">${t('thankYouSub')}</div><div style="background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:16px;font-size:13px;margin-bottom:1.5rem"><div style="display:flex;justify-content:space-between;color:var(--color-text-secondary);margin-bottom:6px"><span>${t('subtotal')}</span><span>¥${(totalCny/(1+FEE_RATE)).toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;color:#854F0B;margin-bottom:8px;padding-bottom:8px;border-bottom:.5px solid var(--color-border-tertiary)"><span>${t('fee')} (1.5%)</span><span>¥${(totalCny-totalCny/(1+FEE_RATE)).toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;font-weight:500;font-size:15px"><span>${t('total')}</span><span>¥${totalCny.toFixed(2)}</span></div></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="go('shop')">${t('backToShopBtn')}</button></div>`;
 }
 
@@ -1466,11 +1509,11 @@ function rReg(r){
 }
 function ckRC(){const v=document.getElementById('rc').value.trim().toUpperCase(),h=document.getElementById('rch'),f=document.getElementById('rf');if(!v){h.textContent='';f.style.opacity='.4';f.style.pointerEvents='none';return;}const ref=refByCode(v);if(ref){h.style.color='#185FA5';h.innerHTML=`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:3px"><path d="M2 6l3 3 5-5" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>${t('validCode')} <strong>${ref.name}</strong>`;f.style.opacity='1';f.style.pointerEvents='auto';}else{h.style.color='#A32D2D';h.innerHTML=`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:3px"><path d="M3 3l6 6M9 3l-6 6" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round"/></svg>${t('invalidCode')}`;f.style.opacity='.4';f.style.pointerEvents='none';}}
 function ckS(pw){const b=document.getElementById('sb');if(!b)return;let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
-function doReg(){const code=document.getElementById('rc').value.trim().toUpperCase(),fn=document.getElementById('rfn').value.trim(),ln=document.getElementById('rln').value.trim(),em=document.getElementById('re').value.trim().toLowerCase(),pw=document.getElementById('rp').value,pw2=document.getElementById('rp2').value,msg=document.getElementById('rm');const ref=refByCode(code);if(!ref){msg.innerHTML=`<div class="m e">${t('errorInvalidCode')}</div>`;return;}if(!fn||!ln||!em||!pw||!pw2){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.innerHTML=`<div class="m e">${t('errorEmail')}</div>`;return;}if(pw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassLen')}</div>`;return;}if(pw!==pw2){msg.innerHTML=`<div class="m e">${t('errorPassMatch')}</div>`;return;}if(db.users.find(u=>u.email===em)){msg.innerHTML=`<div class="m e">${t('errorEmailTaken')}</div>`;return;}const u={id:'u'+Date.now(),name:fn+' '+ln,email:em,pass:pw,referrerId:ref.id,referrerName:ref.name,joined:new Date().toLocaleDateString(),orders:0};db.users.push(u);db.cur=u;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Account created! Welcome to Netiva.':(lang==='zht'?'帳戶建立成功！歡迎加入 Netiva。':'账户创建成功！欢迎加入 Netiva。')}</div>`;setTimeout(()=>go('shop'),900);}
+function doReg(){const code=document.getElementById('rc').value.trim().toUpperCase(),fn=document.getElementById('rfn').value.trim(),ln=document.getElementById('rln').value.trim(),em=document.getElementById('re').value.trim().toLowerCase(),pw=document.getElementById('rp').value,pw2=document.getElementById('rp2').value,msg=document.getElementById('rm');const ref=refByCode(code);if(!ref){msg.innerHTML=`<div class="m e">${t('errorInvalidCode')}</div>`;return;}if(!fn||!ln||!em||!pw||!pw2){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.innerHTML=`<div class="m e">${t('errorEmail')}</div>`;return;}if(pw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassLen')}</div>`;return;}if(pw!==pw2){msg.innerHTML=`<div class="m e">${t('errorPassMatch')}</div>`;return;}if(db.users.find(u=>u.email===em)){msg.innerHTML=`<div class="m e">${t('errorEmailTaken')}</div>`;return;}const u={id:'u'+Date.now(),name:fn+' '+ln,email:em,pass:pw,referrerId:ref.id,referrerName:ref.name,joined:new Date().toLocaleDateString(),orders:0};db.users.push(u);db.cur=u;sv(true);msg.innerHTML=`<div class="m s">${lang==='en'?'Account created! Welcome to Netiva.':(lang==='zht'?'帳戶建立成功！歡迎加入 Netiva。':'账户创建成功！欢迎加入 Netiva。')}</div>`;setTimeout(()=>go('shop'),900);}
 function rLogin(r){r.innerHTML=`<div class="ov"><div class="mod"><h2>${t('signIn')}</h2><div class="msub">${t('welcomeBack')}</div><div id="lm"></div><div class="fl"><label>${t('email')}</label><input type="email" id="le"></div><div class="fl"><label>${t('password')}</label><input type="password" id="lp" onkeydown="if(event.key==='Enter')doLogin()"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">${t('signInBtn')}</button><div class="sw">${t('noAccount')} <a onclick="go('reg')">${t('registerHere')}</a></div></div></div>`;}
 function doLogin(){const em=document.getElementById('le').value.trim().toLowerCase(),pw=document.getElementById('lp').value,msg=document.getElementById('lm');if(!em||!pw){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}const u=db.users.find(u=>u.email===em&&u.pass===pw);if(!u){msg.innerHTML=`<div class="m e">${lang==='en'?'Incorrect email or password.':(lang==='zht'?'電子郵件或密碼不正確。':'邮箱或密码不正确。')}</div>`;return;}db.cur=u;sv();msg.innerHTML=`<div class="m s">${lang==='en'?'Welcome back, '+u.name.split(' ')[0]+'!':(lang==='zht'?'歡迎回來，'+u.name.split(' ')[0]+'！':'欢迎回来，'+u.name.split(' ')[0]+'！')}</div>`;setTimeout(()=>go('shop'),700);}
 function rAcc(r){if(!db.cur){go('login');return;}const u=db.cur;r.innerHTML=`<div class="pg"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem"><div style="display:flex;align-items:center;gap:12px"><div class="ava" style="width:44px;height:44px;font-size:15px">${ini(u.name)}</div><div><div style="font-size:16px;font-weight:500">${u.name}</div><div style="font-size:12px;color:var(--color-text-secondary)">${u.email}</div></div></div><button class="btn sm d" onclick="doLO()">${t('logout')}</button></div><div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 12c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${t('refBy')}: <strong>${u.referrerName}</strong></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem"><div class="sc"><div class="sl">${t('joined')}</div><div style="font-size:13px;font-weight:500;margin-top:4px">${u.joined}</div></div><div class="sc"><div class="sl">${t('orders')}</div><div class="sv">${u.orders||0}</div></div></div><div class="dv"></div><div class="fl"><label>${lang==='en'?'Full Name':(lang==='zht'?'姓名':'姓名')}</label><input type="text" id="en" value="${u.name}" style="width:100%"></div><div class="fl"><label>${t('email')}</label><input type="email" id="ee" value="${u.email}" style="width:100%"></div><div id="em"></div><button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="saveA()">${t('saveChanges')}</button><div style="margin-top:10px;text-align:center"><a style="font-size:12px;color:var(--color-text-secondary);cursor:pointer;text-decoration:underline" onclick="go('shop')">${t('backToShop')}</a></div></div>`;}
-function saveA(){const n=document.getElementById('en').value.trim(),e=document.getElementById('ee').value.trim().toLowerCase(),msg=document.getElementById('em');if(!n||!e){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}db.cur.name=n;db.cur.email=e;const i=db.users.findIndex(u=>u.id===db.cur.id);if(i>-1)db.users[i]=db.cur;sv();rNav();msg.innerHTML=`<div class="m s">${t('saved')}</div>`;}
+function saveA(){const n=document.getElementById('en').value.trim(),e=document.getElementById('ee').value.trim().toLowerCase(),msg=document.getElementById('em');if(!n||!e){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}db.cur.name=n;db.cur.email=e;const i=db.users.findIndex(u=>u.id===db.cur.id);if(i>-1)db.users[i]=db.cur;sv(true);rNav();msg.innerHTML=`<div class="m s">${t('saved')}</div>`;}
 function doLO(){db.cur=null;sv();cart=[];go('shop');}
 
 function rAdmLogin(r){
@@ -1762,11 +1805,11 @@ function handleProdImgs(e,pfx){
   });
 }
 function startAddProd(){editingProdId='new';rAdmProds(document.getElementById('atc'));const slot=document.getElementById('prod-add-slot');slot.innerHTML=`<div class="prod-edit-form"><div style="font-size:14px;font-weight:500;margin-bottom:12px">${t('addProductTitle')}</div><div id="add-prod-msg"></div>${prodFormHtml(null,'np-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveNewProd()">${t('saveProduct')}</button><button class="btn sm" onclick="editingProdId=null;rAdmProds(document.getElementById('atc'))">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _newProd={id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants};db.products.push(_newProd);window['np-imgs']=undefined;window['np-variants']=undefined;sv();_attachProdListeners(_newProd);editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
+function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _newProd={id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants};db.products.push(_newProd);window['np-imgs']=undefined;window['np-variants']=undefined;svProd(_newProd.id,true);_attachProdListeners(_newProd);editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
 function startEditProd(id){editingProdId=editingProdId===id?null:id;rAdmProds(document.getElementById('atc'));if(editingProdId===id){const slot=document.getElementById('prod-edit-'+id),p=db.products.find(x=>x.id===id);slot.innerHTML=`<div class="prod-edit-form"><div id="ep-msg-${id}"></div>${prodFormHtml(p,'ep'+id+'-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveEditProd('${id}')">${t('saveChanges')}</button><button class="btn sm" onclick="startEditProd('${id}')">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}}
-function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),name_zht=document.getElementById(pfx+'name_zht').value.trim(),desc_en=getRteHtml(pfx+'desc_en'),desc_zh=getRteHtml(pfx+'desc_zh'),desc_zht=getRteHtml(pfx+'desc_zht'),content_en=getRteHtml(pfx+'content_en'),content_zh=getRteHtml(pfx+'content_zh'),content_zht=getRteHtml(pfx+'content_zht'),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),tag_zht=document.getElementById(pfx+'tag_zht').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),active=document.getElementById(pfx+'active').value==='1',imgs=window[pfx+'imgs']!==undefined?window[pfx+'imgs']:(db.products.find(x=>x.id===id)?.imgs||[]),img=imgs[0]||(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window[pfx+'imgs']=undefined;window[pfx+'variants']=undefined;sv();editingProdId=null;rAdmProds(document.getElementById('atc'));}
-function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.active=!p.active;sv();rAdmProds(document.getElementById('atc'));}
-function deleteProd(id){db.products=db.products.filter(x=>x.id!==id);sv();rAdmProds(document.getElementById('atc'));}
+function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),name_zht=document.getElementById(pfx+'name_zht').value.trim(),desc_en=getRteHtml(pfx+'desc_en'),desc_zh=getRteHtml(pfx+'desc_zh'),desc_zht=getRteHtml(pfx+'desc_zht'),content_en=getRteHtml(pfx+'content_en'),content_zh=getRteHtml(pfx+'content_zh'),content_zht=getRteHtml(pfx+'content_zht'),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),tag_zht=document.getElementById(pfx+'tag_zht').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),active=document.getElementById(pfx+'active').value==='1',imgs=window[pfx+'imgs']!==undefined?window[pfx+'imgs']:(db.products.find(x=>x.id===id)?.imgs||[]),img=imgs[0]||(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window[pfx+'imgs']=undefined;window[pfx+'variants']=undefined;svProd(id,true);editingProdId=null;rAdmProds(document.getElementById('atc'));}
+function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.active=!p.active;sv(true);rAdmProds(document.getElementById('atc'));}
+function deleteProd(id){db.products=db.products.filter(x=>x.id!==id);sv(true);rAdmProds(document.getElementById('atc'));}
 
 function qrUploadHtml(pfx,type,existing){const label=t(type==='alipay'?'alipayQr':'wechatQr');const icon=type==='alipay'?`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#1677FF"/><path d="M4 7h16M4 12h8m-8 5h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M14 14s3 1.5 5 2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>`:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#07C160"/><path d="M8 10c3-4 10-3 10 1 0 2.5-2.5 4-5 3l-3 2 1-2.5C9.5 12.5 8 11.5 8 10z" fill="white"/></svg>`;const imgHtml=existing?`<img src="${existing}" class="qr-preview" style="margin:0 auto 6px;display:block"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">${t('replaceQr')}</div>`:`<div style="margin-bottom:6px">${icon}</div><div style="font-size:12px;color:var(--color-text-secondary)">${t('uploadQr')} ${label}</div>`;return `<div><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:5px;font-weight:500;display:flex;align-items:center;gap:5px">${icon} ${label}</div><label class="qr-upload-box" style="display:block;cursor:pointer">${imgHtml}<input type="file" accept="image/*" style="display:none" onchange="handleQr(event,'${pfx}','${type}')"></label>${existing?`<button class="btn sm d" style="margin-top:4px;width:100%;justify-content:center" onclick="clearQr('${pfx}','${type}')">${t('removeQr')}</button>`:''}</div>`;}
 function handleQr(e,pfx,type){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{window[pfx+type+'Qr']=ev.target.result;const tc=document.getElementById('atc');if(atab==='addref')rAdmAddRef(tc);else rAdmRefs(tc);};rd.readAsDataURL(f);}
@@ -1777,11 +1820,11 @@ function gCode(id){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i
 function collectRefFields(pfx,rid){return{name:document.getElementById(pfx+'name').value.trim(),iMemberNo:document.getElementById(pfx+'iMemberNo').value.trim(),address:document.getElementById(pfx+'address').value.trim(),country:document.getElementById(pfx+'country').value.trim(),phone:document.getElementById(pfx+'phone').value.trim(),email:document.getElementById(pfx+'email').value.trim().toLowerCase(),code:document.getElementById(pfx+'code').value.trim().toUpperCase(),active:document.getElementById(pfx+'active').value==='1',note:document.getElementById(pfx+'note').value.trim(),alipayQr:getQr(pfx,'alipay',rid?(refById(rid)||{}).alipayQr:''),wechatQr:getQr(pfx,'wechat',rid?(refById(rid)||{}).wechatQr:'')};}
 function rAdmRefs(tc){tc.innerHTML=db.referrers.length===0?`<div style="text-align:center;color:var(--color-text-secondary);padding:3rem;font-size:13px">${t('noReferrers')}</div>`:db.referrers.map(ref=>{const cnt=membersByRef(ref.id).length,isEditing=editingRefId===ref.id,pfx='er'+ref.id+'-';return`<div style="border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:10px;overflow:hidden"><div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px"><div style="flex:1;min-width:0"><div style="font-weight:500;font-size:14px;margin-bottom:4px">${ref.name}<span class="dot ${ref.active?'g':'r'}" style="margin-left:6px"></span><span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">${ref.active?t('active2'):t('inactive2')}</span></div><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--color-text-secondary)">${ref.iMemberNo?`<span>🪪 ${ref.iMemberNo}</span>`:''}${ref.phone?`<span>📞 ${ref.phone}</span>`:''}${ref.email?`<span>✉ ${ref.email}</span>`:''}${ref.country?`<span>🌏 ${ref.country}</span>`:''}<span>${t('referralCode')}: <span class="code">${ref.code}</span></span><span class="bdg b">${cnt}</span></div>${ref.note?`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">${t('note')}: ${ref.note}</div>`:''}</div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:10px"><button class="btn sm" onclick="toggleEditRef('${ref.id}')">${isEditing?t('cancel'):t('edit')}</button><button class="btn sm" onclick="togRef('${ref.id}')">${ref.active?t('deactivate'):t('activate')}</button><button class="btn sm d" onclick="delRef('${ref.id}')">${t('delete')}</button></div></div>${isEditing?`<div style="background:var(--color-background-secondary);padding:16px;border-top:.5px solid var(--color-border-tertiary)"><div id="er-msg-${ref.id}"></div>${refFormFields(ref,pfx)}<div style="margin-top:12px;display:flex;gap:8px"><button class="btn p sm" onclick="saveEditRef('${ref.id}')">${t('saveChanges')}</button><button class="btn sm" onclick="toggleEditRef('${ref.id}')">${t('cancel')}</button></div></div>`:''}</div>`;}).join('');}
 function toggleEditRef(id){editingRefId=editingRefId===id?null:id;rAdmRefs(document.getElementById('atc'));}
-function saveEditRef(id){const pfx='er'+id+'-',msg=document.getElementById('er-msg-'+id),d=collectRefFields(pfx,id);if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code&&r.id!==id)){msg.innerHTML=`<div class="m e">${t('errorDupCode')}</div>`;return;}Object.assign(refById(id),d);window['er'+id+'-alipayQr']=undefined;window['er'+id+'-wechatQr']=undefined;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
+function saveEditRef(id){const pfx='er'+id+'-',msg=document.getElementById('er-msg-'+id),d=collectRefFields(pfx,id);if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code&&r.id!==id)){msg.innerHTML=`<div class="m e">${t('errorDupCode')}</div>`;return;}Object.assign(refById(id),d);window['er'+id+'-alipayQr']=undefined;window['er'+id+'-wechatQr']=undefined;sv(true);editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmAddRef(tc){tc.innerHTML=`<div style="max-width:580px"><div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem"><div style="font-size:14px;font-weight:500;margin-bottom:4px">${t('addReferrer')}</div><div id="am"></div>${refFormFields(null,'nr-')}<button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:12px" onclick="addRef()">${t('saveReferrer')}</button></div><div class="m i" style="font-size:12px">${lang==='en'?'Referrers are not member accounts and cannot log in to the shop.':(lang==='zht'?'推薦人不是會員帳戶，無法登入商店。':'推荐人不是会员账户，无法登录商店。')}</div></div>`;}
-function addRef(){const msg=document.getElementById('am'),d=collectRefFields('nr-');if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code)){msg.innerHTML=`<div class="m e">${t('errorCodeExists')}</div>`;return;}const _newRef={id:'r'+Date.now(),...d,created:new Date().toLocaleDateString()};db.referrers.push(_newRef);window['nr-alipayQr']=undefined;window['nr-wechatQr']=undefined;sv();_attachRefListener(_newRef);msg.innerHTML=`<div class="m s">${lang==='en'?'Referrer added! Code: ':(lang==='zht'?'推薦人已新增！推薦碼：':'推荐人已添加！推荐码：')}<span class="code">${d.code}</span></div>`;setTimeout(()=>{atab='referrers';editingRefId=null;rAdm(document.getElementById('root'));},1200);}
-function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.active=!r.active;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
-function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
+function addRef(){const msg=document.getElementById('am'),d=collectRefFields('nr-');if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code)){msg.innerHTML=`<div class="m e">${t('errorCodeExists')}</div>`;return;}const _newRef={id:'r'+Date.now(),...d,created:new Date().toLocaleDateString()};db.referrers.push(_newRef);window['nr-alipayQr']=undefined;window['nr-wechatQr']=undefined;sv(true);_attachRefListener(_newRef);msg.innerHTML=`<div class="m s">${lang==='en'?'Referrer added! Code: ':(lang==='zht'?'推薦人已新增！推薦碼：':'推荐人已添加！推荐码：')}<span class="code">${d.code}</span></div>`;setTimeout(()=>{atab='referrers';editingRefId=null;rAdm(document.getElementById('root'));},1200);}
+function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.active=!r.active;sv(true);editingRefId=null;rAdmRefs(document.getElementById('atc'));}
+function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv(true);editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmMem(tc){tc.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>${t('memberName')}</th><th>${t('email')}</th><th>${t('referrer')}</th><th>${t('referralCode')}</th><th>${t('regDate')}</th><th>${t('orders')}</th></tr></thead><tbody>${db.users.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:2rem">${t('noMembers')}</td></tr>`:db.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="ava" style="width:24px;height:24px;font-size:10px">${ini(u.name)}</div><span style="font-weight:500">${u.name}</span></div></td><td style="color:var(--color-text-secondary)">${u.email}</td><td><span class="bdg a">${u.referrerName}</span></td><td><span class="code">${refById(u.referrerId)?.code||'—'}</span></td><td style="color:var(--color-text-secondary)">${u.joined}</td><td>${u.orders||0}</td></tr>`).join('')}</tbody></table></div>`;}
 
 function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.heroTextTitle||'';const heroSub=db.heroTextSub||'';tc.innerHTML=`<div style="max-width:480px">
@@ -1810,13 +1853,13 @@ function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.hero
   <div id="hero-img-msg" style="margin-top:8px"></div>
 </div>
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
-function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.heroImage=ev.target.result;sv();const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
-function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}
-function saveHeroTextSettings(){const title=document.getElementById('stg-hero-title')?.value.trim(),sub=document.getElementById('stg-hero-sub')?.value.trim(),msg=document.getElementById('hero-text-msg');if(title!==undefined)db.heroTextTitle=title;if(sub!==undefined)db.heroTextSub=sub;sv();if(msg)msg.innerHTML='<div class="m s" style="font-size:12px">'+(lang==='en'?'Text saved!':lang==='zht'?'文字已儲存！':'文字已保存！')+'</div>';setTimeout(()=>{if(msg)msg.innerHTML='';},2000);}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
-function saveAdminSettings(){const em=document.getElementById('stg-email').value.trim().toLowerCase(),cur=document.getElementById('stg-cur-pw').value,npw=document.getElementById('stg-new-pw').value,npw2=document.getElementById('stg-new-pw2').value,msg=document.getElementById('stg-msg');if(cur!==db.adminPassword){msg.innerHTML=`<div class="m e">${t('errorCurrentPassword')}</div>`;return;}if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(npw&&npw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(npw&&npw!==npw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}db.adminEmail=em;if(npw)db.adminPassword=npw;sv();msg.innerHTML=`<div class="m s">${t('credentialsSaved')}</div>`;document.getElementById('stg-cur-pw').value='';document.getElementById('stg-new-pw').value='';document.getElementById('stg-new-pw2').value='';if(document.getElementById('stg-sb'))document.getElementById('stg-sb').style.width='0%';}
+function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.heroImage=ev.target.result;sv(true);const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
+function removeHeroImg(){db.heroImage='';sv(true);rAdmSettings(document.getElementById('atc'));}
+function saveHeroTextSettings(){const title=document.getElementById('stg-hero-title')?.value.trim(),sub=document.getElementById('stg-hero-sub')?.value.trim(),msg=document.getElementById('hero-text-msg');if(title!==undefined)db.heroTextTitle=title;if(sub!==undefined)db.heroTextSub=sub;sv(true);if(msg)msg.innerHTML='<div class="m s" style="font-size:12px">'+(lang==='en'?'Text saved!':lang==='zht'?'文字已儲存！':'文字已保存！')+'</div>';setTimeout(()=>{if(msg)msg.innerHTML='';},2000);}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
+function saveAdminSettings(){const em=document.getElementById('stg-email').value.trim().toLowerCase(),cur=document.getElementById('stg-cur-pw').value,npw=document.getElementById('stg-new-pw').value,npw2=document.getElementById('stg-new-pw2').value,msg=document.getElementById('stg-msg');if(cur!==db.adminPassword){msg.innerHTML=`<div class="m e">${t('errorCurrentPassword')}</div>`;return;}if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(npw&&npw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(npw&&npw!==npw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}db.adminEmail=em;if(npw)db.adminPassword=npw;sv(true);msg.innerHTML=`<div class="m s">${t('credentialsSaved')}</div>`;document.getElementById('stg-cur-pw').value='';document.getElementById('stg-new-pw').value='';document.getElementById('stg-new-pw2').value='';if(document.getElementById('stg-sb'))document.getElementById('stg-sb').style.width='0%';}
 
 function toggleFeeEdit(){const ed=document.getElementById('fee-edit'),disp=document.getElementById('fee-display');if(!ed||!disp)return;const isOpen=ed.style.display==='block';ed.style.display=isOpen?'none':'block';if(!isOpen){document.getElementById('fee-input').value=(FEE_RATE*100).toFixed(4).replace(/\.?0+$/,'');document.getElementById('fee-input').focus();}}
-function saveFeeRate(){const inp=document.getElementById('fee-input'),msg=document.getElementById('fee-msg');const v=parseFloat(inp.value);if(isNaN(v)||v<0||v>100){msg.innerHTML=`<div class="m e" style="font-size:11px;padding:4px 8px">${lang==='en'?'Enter 0–100':(lang==='zht'?'請輸入 0–100':'请输入 0–100')}</div>`;return;}FEE_RATE=parseFloat((v/100).toFixed(6));sv();document.getElementById('fee-display').textContent=(v).toFixed(2).replace(/\.?0+$/,'')+'%';document.getElementById('fee-edit').style.display='none';msg.innerHTML='';}
+function saveFeeRate(){const inp=document.getElementById('fee-input'),msg=document.getElementById('fee-msg');const v=parseFloat(inp.value);if(isNaN(v)||v<0||v>100){msg.innerHTML=`<div class="m e" style="font-size:11px;padding:4px 8px">${lang==='en'?'Enter 0–100':(lang==='zht'?'請輸入 0–100':'请输入 0–100')}</div>`;return;}FEE_RATE=parseFloat((v/100).toFixed(6));sv(true);document.getElementById('fee-display').textContent=(v).toFixed(2).replace(/\.?0+$/,'')+'%';document.getElementById('fee-edit').style.display='none';msg.innerHTML='';}
 
 // Boot is handled by _boot() above — triggered once Firebase is ready
 </script>
