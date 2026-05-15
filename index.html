@@ -137,9 +137,17 @@
     .pdp-add-btn:active { transform: scale(.99); }
     @media (max-width: 700px) {
       .pdp-layout { grid-template-columns: 1fr; }
-      .pdp-gallery-col { position: relative; top: 0; height: 62vw; min-height: 260px; }
+      .pdp-gallery-col { position: relative; top: 0; height: 80vw; min-height: 320px; }
       .pdp-info-col { padding: 1.5rem 1.25rem 2rem; }
       .pdp-name { font-size: 22px; }
+    }
+    @media (max-width: 600px) {
+      .prods { grid-template-columns: 1fr 1fr; gap: 12px; padding: 1rem; }
+      .pi { height: 44vw; min-height: 160px; }
+    }
+    @media (max-width: 420px) {
+      .prods { grid-template-columns: 1fr; gap: 14px; }
+      .pi { height: 72vw; min-height: 220px; }
     }
     .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-bottom: 4px; font-weight: 500; background: #EAF3DE; color: #3B6D11; }
 
