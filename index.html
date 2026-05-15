@@ -1648,7 +1648,8 @@ function applyImgCrop(pfx,imgIdx){
 function removeProdImg(pfx,idx){
   const imgs=window[pfx+'imgs'];if(!imgs)return;
   imgs.splice(idx,1);
-  rAdmProds(document.getElementById('atc'));
+  const gallery=document.getElementById(pfx+'img-gallery');
+  if(gallery){gallery.innerHTML=imgs.map((src,i)=>`<div style="position:relative;display:inline-block"><img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:.5px solid var(--color-border-secondary);cursor:pointer" onclick="openCropTool('${pfx}',${i})"><button onclick="removeProdImg('${pfx}',${i})" style="position:absolute;top:-5px;right:-5px;background:#E24B4A;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1">×</button><div style="font-size:10px;text-align:center;color:var(--color-text-secondary);margin-top:3px">${lang==='en'?'Edit':'编辑'}</div></div>`).join('');}else{rAdmProds(document.getElementById('atc'));}
 }
 function addVar(pfx){
   if(!window[pfx+'variants'])window[pfx+'variants']=[];
@@ -1687,7 +1688,24 @@ function handleProdImgs(e,pfx){
   let loaded=0;
   files.forEach(f=>{
     const rd=new FileReader();
-    rd.onload=ev=>{window[pfx+'imgs'].push(ev.target.result);loaded++;if(loaded===files.length)rAdmProds(document.getElementById('atc'));};
+    rd.onload=ev=>{
+      window[pfx+'imgs'].push(ev.target.result);
+      loaded++;
+      if(loaded===files.length){
+        // Update only the image gallery in-place to avoid closing the edit form
+        const gallery=document.getElementById(pfx+'img-gallery');
+        if(gallery){
+          const imgs=window[pfx+'imgs'];
+          gallery.innerHTML=imgs.map((src,i)=>`<div style="position:relative;display:inline-block">
+            <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:.5px solid var(--color-border-secondary);cursor:pointer" onclick="openCropTool('${pfx}',${i})">
+            <button onclick="removeProdImg('${pfx}',${i})" style="position:absolute;top:-5px;right:-5px;background:#E24B4A;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1">×</button>
+            <div style="font-size:10px;text-align:center;color:var(--color-text-secondary);margin-top:3px">${lang==='en'?'Edit':'编辑'}</div>
+          </div>`).join('');
+        } else {
+          rAdmProds(document.getElementById('atc'));
+        }
+      }
+    };
     rd.readAsDataURL(f);
   });
 }
