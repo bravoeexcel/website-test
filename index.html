@@ -294,6 +294,59 @@
     .mob-dd-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
     .mob-dd-item svg { opacity: .55; flex-shrink: 0; }
 
+    /* ── Language selection overlay ── */
+    .lang-pick-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,.45);
+      backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem;
+      opacity: 1; transition: opacity .35s ease;
+    }
+    .lang-pick-overlay.fade-out { opacity: 0; pointer-events: none; }
+    .lang-pick-card {
+      max-width: 380px; width: 100%; text-align: center;
+      background: var(--color-background-primary);
+      border: .5px solid var(--color-border-secondary);
+      border-radius: 16px;
+      padding: 2rem 1.75rem;
+      box-shadow: 0 16px 48px rgba(0,0,0,.18);
+    }
+    .lang-pick-logo {
+      font-size: 28px; font-weight: 500; letter-spacing: -.6px;
+      margin-bottom: 10px; color: var(--color-text-primary);
+    }
+    .lang-pick-tagline {
+      font-size: 13px; color: var(--color-text-secondary);
+      margin-bottom: 2.5rem;
+    }
+    .lang-pick-label {
+      font-size: 11px; font-weight: 500; letter-spacing: .5px;
+      text-transform: uppercase; color: var(--color-text-tertiary);
+      margin-bottom: 14px;
+    }
+    .lang-pick-options {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .lang-pick-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 14px 18px;
+      background: var(--color-background-secondary);
+      border: .5px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-lg);
+      cursor: pointer; transition: border-color .15s, background .15s;
+      font-family: var(--font-sans);
+    }
+    .lang-pick-btn:hover {
+      border-color: var(--color-border-primary);
+      background: #edecea;
+    }
+    .lang-pick-btn:active { transform: scale(.98); }
+    .lang-pick-btn-left { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .lang-pick-btn-name { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+    .lang-pick-btn-sub { font-size: 12px; color: var(--color-text-secondary); }
+    .lang-pick-btn-arrow { color: var(--color-text-tertiary); font-size: 18px; }
+
     /* Hide desktop nav items on mobile */
     @media (max-width: 600px) {
       .mob-menu-btn { display: flex; }
@@ -351,6 +404,38 @@
   </script>
 </head>
 <body>
+
+<!-- Language selection overlay (shown on first visit) -->
+<div id="lang-pick-overlay" class="lang-pick-overlay" style="display:none">
+  <div class="lang-pick-card">
+    <div class="lang-pick-logo">Netiva</div>
+    <div class="lang-pick-tagline">Fresh from the source · 源自自然的美味</div>
+    <div class="lang-pick-label">Choose your language · 选择语言 · 選擇語言</div>
+    <div class="lang-pick-options">
+      <button class="lang-pick-btn" onclick="pickLang('en')">
+        <div class="lang-pick-btn-left">
+          <span class="lang-pick-btn-name">English</span>
+          <span class="lang-pick-btn-sub">Continue in English</span>
+        </div>
+        <span class="lang-pick-btn-arrow">→</span>
+      </button>
+      <button class="lang-pick-btn" onclick="pickLang('zh')">
+        <div class="lang-pick-btn-left">
+          <span class="lang-pick-btn-name">简体中文</span>
+          <span class="lang-pick-btn-sub">继续使用简体中文</span>
+        </div>
+        <span class="lang-pick-btn-arrow">→</span>
+      </button>
+      <button class="lang-pick-btn" onclick="pickLang('zht')">
+        <div class="lang-pick-btn-left">
+          <span class="lang-pick-btn-name">繁體中文</span>
+          <span class="lang-pick-btn-sub">繼續使用繁體中文</span>
+        </div>
+        <span class="lang-pick-btn-arrow">→</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <nav class="nav">
   <span class="logo" onclick="go('shop')">Netiva</span>
@@ -1153,6 +1238,41 @@ function setLang(l){
   const ma=document.getElementById('mob-nav-admin');if(ma){const sp=ma.querySelector('span');if(sp)sp.textContent=t('admin');}
   rNav();render();
 }
+
+function pickLang(l){
+  try{localStorage.setItem('netiva_lang',l);}catch(e){}
+  lang=l;
+  const labels={en:'EN',zh:'简体',zht:'繁體'};
+  const lbl=document.getElementById('lang-label');if(lbl)lbl.textContent=labels[l]||'EN';
+  document.getElementById('lb-en').classList.toggle('on',l==='en');
+  document.getElementById('lb-zh').classList.toggle('on',l==='zh');
+  document.getElementById('lb-zht').classList.toggle('on',l==='zht');
+  const ov=document.getElementById('lang-pick-overlay');
+  if(ov){ov.classList.add('fade-out');setTimeout(()=>{ov.style.display='none';ov.classList.remove('fade-out');},360);}
+  rNav();render();
+}
+
+function _checkFirstVisitLang(){
+  try{
+    const saved=localStorage.getItem('netiva_lang');
+    if(saved&&['en','zh','zht'].includes(saved)){
+      lang=saved;
+      const labels={en:'EN',zh:'简体',zht:'繁體'};
+      const lbl=document.getElementById('lang-label');if(lbl)lbl.textContent=labels[saved]||'EN';
+      document.getElementById('lb-en').classList.toggle('on',saved==='en');
+      document.getElementById('lb-zh').classList.toggle('on',saved==='zh');
+      document.getElementById('lb-zht').classList.toggle('on',saved==='zht');
+      return false;
+    }
+  }catch(e){}
+  const ov=document.getElementById('lang-pick-overlay');
+  if(ov)ov.style.display='flex';
+  return true;
+}
+
+// Run first-visit language check immediately
+_checkFirstVisitLang();
+
 function toggleLangDd(e){e.stopPropagation();document.getElementById('lang-dd-menu').classList.toggle('open');}
 function closeLangDd(){document.getElementById('lang-dd-menu').classList.remove('open');}
 fetchRate();setInterval(fetchRate,3600000);
