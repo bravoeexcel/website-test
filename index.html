@@ -779,42 +779,46 @@ let _svPendingMain=false;
 // Track pending per-doc image saves: { docId: timeoutId }
 const _svPendingImgDocs={};
 
+// sv() only writes main metadata. Call _svProdImgs/_svProdText/_svRefQrs/_svHeroImg for binary docs.
 function sv(){
   db.feeRate = FEE_RATE;
+  const mainPayload = _buildMainPayload(); // build once
   // Fast local cache
   try{
-    const mainSnap={...db, products:_buildMainPayload().products, referrers:_buildMainPayload().referrers};
-    localStorage.setItem('netiva_shop', JSON.stringify(mainSnap));
+    localStorage.setItem('netiva_shop', JSON.stringify({...db, products:mainPayload.products, referrers:mainPayload.referrers}));
     localStorage.setItem(IMG_DOC_KEY, JSON.stringify(_buildLocalImgCache()));
   }catch(e){}
   if(!_fbReady) return;
 
-  // Debounced write — main metadata doc
-  if(!_svPendingMain){
-    _svPendingMain=true;
-    setTimeout(async()=>{
-      _svPendingMain=false;
-      if(typeof _fb.setDoc !== 'function') return; // Firebase not ready yet
-      try{ await _fb.setDoc(_fb.storeDoc, _buildMainPayload(), {merge:true}); }
-      catch(e){ console.warn('Firestore main write failed:',e); }
-    }, 400);
-  }
+  // Debounced write — resets on each call so the latest state always wins
+  if(_svPendingMain) clearTimeout(_svPendingMain);
+  _svPendingMain = setTimeout(async()=>{
+    _svPendingMain = false;
+    if(typeof _fb.setDoc !== 'function') return;
+    try{ await _fb.setDoc(_fb.storeDoc, _buildMainPayload(), {merge:true}); }
+    catch(e){ console.warn('Firestore main write failed:',e); }
+  }, 200);
+}
 
-  // Write hero image — only when there is actually an image to save
+// Targeted saves — call these directly when specific content changes so we
+// don't re-queue writes for every product/referrer on every sv() call.
+function _svProdImgs(prod){
+  if(!_fbReady||!prod) return;
+  const imgs=prod.imgs&&prod.imgs.length ? prod.imgs : (prod.img ? [prod.img] : []);
+  if(imgs.length) _svImgDoc('img_'+prod.id, {imgs});
+}
+function _svProdText(prod){
+  if(!_fbReady||!prod) return;
+  const hasText=prod.content_en||prod.content_zh||prod.content_zht;
+  if(hasText) _svImgDoc('text_'+prod.id, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
+}
+function _svRefQrs(ref){
+  if(!_fbReady||!ref) return;
+  if(ref.alipayQr||ref.wechatQr) _svImgDoc('ref_'+ref.id, {alipayQr:ref.alipayQr||'', wechatQr:ref.wechatQr||''});
+}
+function _svHeroImg(){
+  if(!_fbReady) return;
   if(db.heroImage) _svImgDoc('hero', {heroImage: db.heroImage});
-
-  // Write each product's images/text — only when there is real content to save
-  (db.products||[]).forEach(prod=>{
-    const imgs=prod.imgs&&prod.imgs.length ? prod.imgs : (prod.img ? [prod.img] : []);
-    if(imgs.length) _svImgDoc('img_'+prod.id, {imgs});
-    const hasText=prod.content_en||prod.content_zh||prod.content_zht;
-    if(hasText) _svImgDoc('text_'+prod.id, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
-  });
-
-  // Write each referrer's QRs — only when there is a QR image to save
-  (db.referrers||[]).forEach(ref=>{
-    if(ref.alipayQr||ref.wechatQr) _svImgDoc('ref_'+ref.id, {alipayQr:ref.alipayQr||'', wechatQr:ref.wechatQr||''});
-  });
 }
 
 // Track which doc IDs already have live listeners so we never double-register
@@ -867,23 +871,23 @@ function _attachRefListener(ref){
   }catch(e){console.warn('listener attach failed for '+docId,e);}
 }
 
-// Debounced write for a single image doc (600ms)
+// Debounced write for a single image/text doc (150ms — fast enough for near-instant sync)
 function _svImgDoc(docId, payload){
   if(_svPendingImgDocs[docId]) clearTimeout(_svPendingImgDocs[docId]);
   _svPendingImgDocs[docId]=setTimeout(async()=>{
     delete _svPendingImgDocs[docId];
-    if(typeof _fb.setDoc !== 'function') return; // Firebase not ready yet
-    // Guard: Firestore has a 1 MB per-doc limit. Warn clearly if we're over.
+    if(typeof _fb.setDoc !== 'function') return;
+    // Guard: Firestore 1 MB per-doc limit
     const payloadSize = JSON.stringify(payload).length;
     if(payloadSize > 900000){
-      console.warn('Firestore img write SKIPPED ('+docId+'): payload is '+Math.round(payloadSize/1024)+'KB, exceeds ~900KB safe limit. Re-upload the image via admin to compress it.');
+      console.warn('Firestore write SKIPPED ('+docId+'): '+Math.round(payloadSize/1024)+'KB exceeds limit. Re-upload the image to compress it.');
       return;
     }
     try{
       const ref=_fb.doc(_fb.fsdb,'netiva',docId);
       await _fb.setDoc(ref, payload, {merge:true});
     }catch(e){ console.warn('Firestore img write failed ('+docId+'):',e); }
-  }, 600);
+  }, 150);
 }
 
 // Merge remote main-doc snapshot into local db.
@@ -1769,9 +1773,9 @@ function handleProdImgs(e,pfx){
   });
 }
 function startAddProd(){editingProdId='new';rAdmProds(document.getElementById('atc'));const slot=document.getElementById('prod-add-slot');slot.innerHTML=`<div class="prod-edit-form"><div style="font-size:14px;font-weight:500;margin-bottom:12px">${t('addProductTitle')}</div><div id="add-prod-msg"></div>${prodFormHtml(null,'np-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveNewProd()">${t('saveProduct')}</button><button class="btn sm" onclick="editingProdId=null;rAdmProds(document.getElementById('atc'))">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _newProd={id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants};db.products.push(_newProd);window['np-imgs']=undefined;window['np-variants']=undefined;sv();_attachProdListeners(_newProd);editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
+function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _newProd={id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants};db.products.push(_newProd);window['np-imgs']=undefined;window['np-variants']=undefined;sv();_svProdImgs(_newProd);_svProdText(_newProd);_attachProdListeners(_newProd);editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
 function startEditProd(id){editingProdId=editingProdId===id?null:id;rAdmProds(document.getElementById('atc'));if(editingProdId===id){const slot=document.getElementById('prod-edit-'+id),p=db.products.find(x=>x.id===id);slot.innerHTML=`<div class="prod-edit-form"><div id="ep-msg-${id}"></div>${prodFormHtml(p,'ep'+id+'-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveEditProd('${id}')">${t('saveChanges')}</button><button class="btn sm" onclick="startEditProd('${id}')">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}}
-function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),name_zht=document.getElementById(pfx+'name_zht').value.trim(),desc_en=getRteHtml(pfx+'desc_en'),desc_zh=getRteHtml(pfx+'desc_zh'),desc_zht=getRteHtml(pfx+'desc_zht'),content_en=getRteHtml(pfx+'content_en'),content_zh=getRteHtml(pfx+'content_zh'),content_zht=getRteHtml(pfx+'content_zht'),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),tag_zht=document.getElementById(pfx+'tag_zht').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),active=document.getElementById(pfx+'active').value==='1',imgs=window[pfx+'imgs']!==undefined?window[pfx+'imgs']:(db.products.find(x=>x.id===id)?.imgs||[]),img=imgs[0]||(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window[pfx+'imgs']=undefined;window[pfx+'variants']=undefined;sv();editingProdId=null;rAdmProds(document.getElementById('atc'));}
+function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),name_zht=document.getElementById(pfx+'name_zht').value.trim(),desc_en=getRteHtml(pfx+'desc_en'),desc_zh=getRteHtml(pfx+'desc_zh'),desc_zht=getRteHtml(pfx+'desc_zht'),content_en=getRteHtml(pfx+'content_en'),content_zh=getRteHtml(pfx+'content_zh'),content_zht=getRteHtml(pfx+'content_zht'),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),tag_zht=document.getElementById(pfx+'tag_zht').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),active=document.getElementById(pfx+'active').value==='1',imgs=window[pfx+'imgs']!==undefined?window[pfx+'imgs']:(db.products.find(x=>x.id===id)?.imgs||[]),img=imgs[0]||(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _updProd=db.products.find(x=>x.id===id);Object.assign(_updProd,{name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window[pfx+'imgs']=undefined;window[pfx+'variants']=undefined;sv();_svProdImgs(_updProd);_svProdText(_updProd);editingProdId=null;rAdmProds(document.getElementById('atc'));}
 function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.active=!p.active;sv();rAdmProds(document.getElementById('atc'));}
 function deleteProd(id){db.products=db.products.filter(x=>x.id!==id);sv();rAdmProds(document.getElementById('atc'));}
 
@@ -1784,9 +1788,9 @@ function gCode(id){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i
 function collectRefFields(pfx,rid){return{name:document.getElementById(pfx+'name').value.trim(),iMemberNo:document.getElementById(pfx+'iMemberNo').value.trim(),address:document.getElementById(pfx+'address').value.trim(),country:document.getElementById(pfx+'country').value.trim(),phone:document.getElementById(pfx+'phone').value.trim(),email:document.getElementById(pfx+'email').value.trim().toLowerCase(),code:document.getElementById(pfx+'code').value.trim().toUpperCase(),active:document.getElementById(pfx+'active').value==='1',note:document.getElementById(pfx+'note').value.trim(),alipayQr:getQr(pfx,'alipay',rid?(refById(rid)||{}).alipayQr:''),wechatQr:getQr(pfx,'wechat',rid?(refById(rid)||{}).wechatQr:'')};}
 function rAdmRefs(tc){tc.innerHTML=db.referrers.length===0?`<div style="text-align:center;color:var(--color-text-secondary);padding:3rem;font-size:13px">${t('noReferrers')}</div>`:db.referrers.map(ref=>{const cnt=membersByRef(ref.id).length,isEditing=editingRefId===ref.id,pfx='er'+ref.id+'-';return`<div style="border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:10px;overflow:hidden"><div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px"><div style="flex:1;min-width:0"><div style="font-weight:500;font-size:14px;margin-bottom:4px">${ref.name}<span class="dot ${ref.active?'g':'r'}" style="margin-left:6px"></span><span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">${ref.active?t('active2'):t('inactive2')}</span></div><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--color-text-secondary)">${ref.iMemberNo?`<span>🪪 ${ref.iMemberNo}</span>`:''}${ref.phone?`<span>📞 ${ref.phone}</span>`:''}${ref.email?`<span>✉ ${ref.email}</span>`:''}${ref.country?`<span>🌏 ${ref.country}</span>`:''}<span>${t('referralCode')}: <span class="code">${ref.code}</span></span><span class="bdg b">${cnt}</span></div>${ref.note?`<div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">${t('note')}: ${ref.note}</div>`:''}</div><div style="display:flex;gap:6px;flex-shrink:0;margin-left:10px"><button class="btn sm" onclick="toggleEditRef('${ref.id}')">${isEditing?t('cancel'):t('edit')}</button><button class="btn sm" onclick="togRef('${ref.id}')">${ref.active?t('deactivate'):t('activate')}</button><button class="btn sm d" onclick="delRef('${ref.id}')">${t('delete')}</button></div></div>${isEditing?`<div style="background:var(--color-background-secondary);padding:16px;border-top:.5px solid var(--color-border-tertiary)"><div id="er-msg-${ref.id}"></div>${refFormFields(ref,pfx)}<div style="margin-top:12px;display:flex;gap:8px"><button class="btn p sm" onclick="saveEditRef('${ref.id}')">${t('saveChanges')}</button><button class="btn sm" onclick="toggleEditRef('${ref.id}')">${t('cancel')}</button></div></div>`:''}</div>`;}).join('');}
 function toggleEditRef(id){editingRefId=editingRefId===id?null:id;rAdmRefs(document.getElementById('atc'));}
-function saveEditRef(id){const pfx='er'+id+'-',msg=document.getElementById('er-msg-'+id),d=collectRefFields(pfx,id);if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code&&r.id!==id)){msg.innerHTML=`<div class="m e">${t('errorDupCode')}</div>`;return;}Object.assign(refById(id),d);window['er'+id+'-alipayQr']=undefined;window['er'+id+'-wechatQr']=undefined;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
+function saveEditRef(id){const pfx='er'+id+'-',msg=document.getElementById('er-msg-'+id),d=collectRefFields(pfx,id);if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code&&r.id!==id)){msg.innerHTML=`<div class="m e">${t('errorDupCode')}</div>`;return;}const _updRef=refById(id);Object.assign(_updRef,d);window['er'+id+'-alipayQr']=undefined;window['er'+id+'-wechatQr']=undefined;sv();_svRefQrs(_updRef);editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmAddRef(tc){tc.innerHTML=`<div style="max-width:580px"><div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem"><div style="font-size:14px;font-weight:500;margin-bottom:4px">${t('addReferrer')}</div><div id="am"></div>${refFormFields(null,'nr-')}<button class="btn p" style="width:100%;justify-content:center;padding:10px;margin-top:12px" onclick="addRef()">${t('saveReferrer')}</button></div><div class="m i" style="font-size:12px">${lang==='en'?'Referrers are not member accounts and cannot log in to the shop.':(lang==='zht'?'推薦人不是會員帳戶，無法登入商店。':'推荐人不是会员账户，无法登录商店。')}</div></div>`;}
-function addRef(){const msg=document.getElementById('am'),d=collectRefFields('nr-');if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code)){msg.innerHTML=`<div class="m e">${t('errorCodeExists')}</div>`;return;}const _newRef={id:'r'+Date.now(),...d,created:new Date().toLocaleDateString()};db.referrers.push(_newRef);window['nr-alipayQr']=undefined;window['nr-wechatQr']=undefined;sv();_attachRefListener(_newRef);msg.innerHTML=`<div class="m s">${lang==='en'?'Referrer added! Code: ':(lang==='zht'?'推薦人已新增！推薦碼：':'推荐人已添加！推荐码：')}<span class="code">${d.code}</span></div>`;setTimeout(()=>{atab='referrers';editingRefId=null;rAdm(document.getElementById('root'));},1200);}
+function addRef(){const msg=document.getElementById('am'),d=collectRefFields('nr-');if(!d.name||!d.code){msg.innerHTML=`<div class="m e">${t('errorFillAll')}</div>`;return;}if(db.referrers.find(r=>r.code===d.code)){msg.innerHTML=`<div class="m e">${t('errorCodeExists')}</div>`;return;}const _newRef={id:'r'+Date.now(),...d,created:new Date().toLocaleDateString()};db.referrers.push(_newRef);window['nr-alipayQr']=undefined;window['nr-wechatQr']=undefined;sv();_svRefQrs(_newRef);_attachRefListener(_newRef);msg.innerHTML=`<div class="m s">${lang==='en'?'Referrer added! Code: ':(lang==='zht'?'推薦人已新增！推薦碼：':'推荐人已添加！推荐码：')}<span class="code">${d.code}</span></div>`;setTimeout(()=>{atab='referrers';editingRefId=null;rAdm(document.getElementById('root'));},1200);}
 function togRef(id){const r=db.referrers.find(x=>x.id===id);if(!r)return;r.active=!r.active;sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function delRef(id){const cnt=membersByRef(id).length;if(cnt>0){const tc=document.getElementById('atc');const d=document.createElement('div');d.className='m e';d.style.marginBottom='10px';d.textContent=t('errorDeleteReferrer');tc.prepend(d);setTimeout(()=>d.remove(),3000);return;}db.referrers=db.referrers.filter(x=>x.id!==id);sv();editingRefId=null;rAdmRefs(document.getElementById('atc'));}
 function rAdmMem(tc){tc.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>${t('memberName')}</th><th>${t('email')}</th><th>${t('referrer')}</th><th>${t('referralCode')}</th><th>${t('regDate')}</th><th>${t('orders')}</th></tr></thead><tbody>${db.users.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:2rem">${t('noMembers')}</td></tr>`:db.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="ava" style="width:24px;height:24px;font-size:10px">${ini(u.name)}</div><span style="font-weight:500">${u.name}</span></div></td><td style="color:var(--color-text-secondary)">${u.email}</td><td><span class="bdg a">${u.referrerName}</span></td><td><span class="code">${refById(u.referrerId)?.code||'—'}</span></td><td style="color:var(--color-text-secondary)">${u.joined}</td><td>${u.orders||0}</td></tr>`).join('')}</tbody></table></div>`;}
@@ -1817,7 +1821,7 @@ function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.hero
   <div id="hero-img-msg" style="margin-top:8px"></div>
 </div>
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
-function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m i" style="font-size:12px">${lang==='en'?'Compressing…':lang==='zht'?'壓縮中…':'压缩中…'}</div>`;_compressImg(f,1800,0.85).then(dataUrl=>{db.heroImage=dataUrl;sv();if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));});}
+function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m i" style="font-size:12px">${lang==='en'?'Compressing…':lang==='zht'?'壓縮中…':'压缩中…'}</div>`;_compressImg(f,1800,0.85).then(dataUrl=>{db.heroImage=dataUrl;sv();_svHeroImg();if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));});}
 function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}
 function saveHeroTextSettings(){const title=document.getElementById('stg-hero-title')?.value.trim(),sub=document.getElementById('stg-hero-sub')?.value.trim(),msg=document.getElementById('hero-text-msg');if(title!==undefined)db.heroTextTitle=title;if(sub!==undefined)db.heroTextSub=sub;sv();if(msg)msg.innerHTML='<div class="m s" style="font-size:12px">'+(lang==='en'?'Text saved!':lang==='zht'?'文字已儲存！':'文字已保存！')+'</div>';setTimeout(()=>{if(msg)msg.innerHTML='';},2000);}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
 function saveAdminSettings(){const em=document.getElementById('stg-email').value.trim().toLowerCase(),cur=document.getElementById('stg-cur-pw').value,npw=document.getElementById('stg-new-pw').value,npw2=document.getElementById('stg-new-pw2').value,msg=document.getElementById('stg-msg');if(cur!==db.adminPassword){msg.innerHTML=`<div class="m e">${t('errorCurrentPassword')}</div>`;return;}if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(npw&&npw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(npw&&npw!==npw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}db.adminEmail=em;if(npw)db.adminPassword=npw;sv();msg.innerHTML=`<div class="m s">${t('credentialsSaved')}</div>`;document.getElementById('stg-cur-pw').value='';document.getElementById('stg-new-pw').value='';document.getElementById('stg-new-pw2').value='';if(document.getElementById('stg-sb'))document.getElementById('stg-sb').style.width='0%';}
