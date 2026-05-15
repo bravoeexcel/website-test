@@ -873,6 +873,12 @@ function _svImgDoc(docId, payload){
   _svPendingImgDocs[docId]=setTimeout(async()=>{
     delete _svPendingImgDocs[docId];
     if(typeof _fb.setDoc !== 'function') return; // Firebase not ready yet
+    // Guard: Firestore has a 1 MB per-doc limit. Warn clearly if we're over.
+    const payloadSize = JSON.stringify(payload).length;
+    if(payloadSize > 900000){
+      console.warn('Firestore img write SKIPPED ('+docId+'): payload is '+Math.round(payloadSize/1024)+'KB, exceeds ~900KB safe limit. Re-upload the image via admin to compress it.');
+      return;
+    }
     try{
       const ref=_fb.doc(_fb.fsdb,'netiva',docId);
       await _fb.setDoc(ref, payload, {merge:true});
@@ -1713,31 +1719,53 @@ function collectVarFields(pfx){
   return window[pfx+'variants'];
 }
 
+// Resize + compress an image file to a data URL safe for Firestore (<= ~200 KB base64)
+function _compressImg(file, maxPx, quality){
+  return new Promise(resolve=>{
+    const rd=new FileReader();
+    rd.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.naturalWidth, h=img.naturalHeight;
+        if(w>maxPx||h>maxPx){
+          if(w>=h){h=Math.round(h*maxPx/w);w=maxPx;}
+          else{w=Math.round(w*maxPx/h);h=maxPx;}
+        }
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(cv.toDataURL('image/jpeg', quality));
+      };
+      img.src=ev.target.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+
 function handleProdImgs(e,pfx){
   const files=Array.from(e.target.files);if(!files.length)return;
   if(!window[pfx+'imgs'])window[pfx+'imgs']=[];
-  let loaded=0;
-  files.forEach(f=>{
-    const rd=new FileReader();
-    rd.onload=ev=>{
-      window[pfx+'imgs'].push(ev.target.result);
-      loaded++;
-      if(loaded===files.length){
-        // Update only the image gallery in-place to avoid closing the edit form
-        const gallery=document.getElementById(pfx+'img-gallery');
-        if(gallery){
-          const imgs=window[pfx+'imgs'];
-          gallery.innerHTML=imgs.map((src,i)=>`<div style="position:relative;display:inline-block">
-            <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:.5px solid var(--color-border-secondary);cursor:pointer" onclick="openCropTool('${pfx}',${i})">
-            <button onclick="removeProdImg('${pfx}',${i})" style="position:absolute;top:-5px;right:-5px;background:#E24B4A;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1">×</button>
-            <div style="font-size:10px;text-align:center;color:var(--color-text-secondary);margin-top:3px">${lang==='en'?'Edit':'编辑'}</div>
-          </div>`).join('');
-        } else {
-          rAdmProds(document.getElementById('atc'));
-        }
-      }
-    };
-    rd.readAsDataURL(f);
+  // Show a processing indicator in the gallery while compressing
+  const gallery=document.getElementById(pfx+'img-gallery');
+  if(gallery){
+    const ind=document.createElement('div');
+    ind.id=pfx+'img-processing';
+    ind.style.cssText='font-size:12px;color:var(--color-text-secondary);padding:8px 0;display:flex;align-items:center;gap:6px';
+    ind.innerHTML=`<svg width="14" height="14" viewBox="0 0 14 14" style="animation:spin 1s linear infinite"><circle cx="7" cy="7" r="5.5" stroke="var(--color-border-secondary)" stroke-width="1.5" fill="none"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="var(--color-text-primary)" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>${lang==='en'?'Compressing images…':'正在压缩图片…'}`;
+    gallery.appendChild(ind);
+  }
+  Promise.all(files.map(f=>_compressImg(f, 1200, 0.82))).then(results=>{
+    results.forEach(dataUrl=>window[pfx+'imgs'].push(dataUrl));
+    const g=document.getElementById(pfx+'img-gallery');
+    if(g){
+      const imgs=window[pfx+'imgs'];
+      g.innerHTML=imgs.map((src,i)=>`<div style="position:relative;display:inline-block">
+        <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:.5px solid var(--color-border-secondary);cursor:pointer" onclick="openCropTool('${pfx}',${i})">
+        <button onclick="removeProdImg('${pfx}',${i})" style="position:absolute;top:-5px;right:-5px;background:#E24B4A;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1">×</button>
+        <div style="font-size:10px;text-align:center;color:var(--color-text-secondary);margin-top:3px">${lang==='en'?'Edit':'编辑'}</div>
+      </div>`).join('');
+    } else {
+      rAdmProds(document.getElementById('atc'));
+    }
   });
 }
 function startAddProd(){editingProdId='new';rAdmProds(document.getElementById('atc'));const slot=document.getElementById('prod-add-slot');slot.innerHTML=`<div class="prod-edit-form"><div style="font-size:14px;font-weight:500;margin-bottom:12px">${t('addProductTitle')}</div><div id="add-prod-msg"></div>${prodFormHtml(null,'np-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveNewProd()">${t('saveProduct')}</button><button class="btn sm" onclick="editingProdId=null;rAdmProds(document.getElementById('atc'))">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}
@@ -1748,7 +1776,7 @@ function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.ac
 function deleteProd(id){db.products=db.products.filter(x=>x.id!==id);sv();rAdmProds(document.getElementById('atc'));}
 
 function qrUploadHtml(pfx,type,existing){const label=t(type==='alipay'?'alipayQr':'wechatQr');const icon=type==='alipay'?`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#1677FF"/><path d="M4 7h16M4 12h8m-8 5h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M14 14s3 1.5 5 2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>`:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#07C160"/><path d="M8 10c3-4 10-3 10 1 0 2.5-2.5 4-5 3l-3 2 1-2.5C9.5 12.5 8 11.5 8 10z" fill="white"/></svg>`;const imgHtml=existing?`<img src="${existing}" class="qr-preview" style="margin:0 auto 6px;display:block"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">${t('replaceQr')}</div>`:`<div style="margin-bottom:6px">${icon}</div><div style="font-size:12px;color:var(--color-text-secondary)">${t('uploadQr')} ${label}</div>`;return `<div><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:5px;font-weight:500;display:flex;align-items:center;gap:5px">${icon} ${label}</div><label class="qr-upload-box" style="display:block;cursor:pointer">${imgHtml}<input type="file" accept="image/*" style="display:none" onchange="handleQr(event,'${pfx}','${type}')"></label>${existing?`<button class="btn sm d" style="margin-top:4px;width:100%;justify-content:center" onclick="clearQr('${pfx}','${type}')">${t('removeQr')}</button>`:''}</div>`;}
-function handleQr(e,pfx,type){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{window[pfx+type+'Qr']=ev.target.result;const tc=document.getElementById('atc');if(atab==='addref')rAdmAddRef(tc);else rAdmRefs(tc);};rd.readAsDataURL(f);}
+function handleQr(e,pfx,type){const f=e.target.files[0];if(!f)return;_compressImg(f,600,0.90).then(dataUrl=>{window[pfx+type+'Qr']=dataUrl;const tc=document.getElementById('atc');if(atab==='addref')rAdmAddRef(tc);else rAdmRefs(tc);});}
 function clearQr(pfx,type){window[pfx+type+'Qr']='';const tc=document.getElementById('atc');if(atab==='addref')rAdmAddRef(tc);else rAdmRefs(tc);}
 function getQr(pfx,type,fb){const k=pfx+type+'Qr';return window[k]!==undefined?window[k]:(fb||'');}
 function refFormFields(ref,pfx){const v=f=>ref?ref[f]||'':'';const aqr=getQr(pfx,'alipay',ref?.alipayQr);const wqr=getQr(pfx,'wechat',ref?.wechatQr);return `<div class="sect">${lang==='en'?'Basic Info':(lang==='zht'?'基本資訊':'基本信息')}</div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('referrerName')}</label><input type="text" id="${pfx}name" value="${v('name')}"></div><div class="fl"><label>${t('iMemberNo')}</label><input type="text" id="${pfx}iMemberNo" value="${v('iMemberNo')}"></div></div><div class="fl"><label>${t('address')}</label><input type="text" id="${pfx}address" value="${v('address')}"></div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('country')}</label><input type="text" id="${pfx}country" value="${v('country')}"></div><div class="fl"><label>${t('phone')}</label><input type="text" id="${pfx}phone" value="${v('phone')}"></div></div><div class="fl"><label>${t('email')}</label><input type="email" id="${pfx}email" value="${v('email')}"></div><div class="sect">${lang==='en'?'Referral Settings':(lang==='zht'?'推薦設定':'推荐设置')}</div><div class="g2" style="margin-bottom:10px"><div class="fl"><label>${t('referralCodeLabel')}</label><div style="display:flex;gap:6px"><input type="text" id="${pfx}code" value="${v('code')}" style="text-transform:uppercase;font-family:var(--font-mono);flex:1"><button class="btn sm" onclick="gCode('${pfx}code')">${t('random')}</button></div></div><div class="fl"><label>${t('status')}</label><select id="${pfx}active"><option value="1" ${(!ref||ref.active)?'selected':''}>${t('active2')}</option><option value="0" ${(ref&&!ref.active)?'selected':''}>${t('inactive2')}</option></select></div></div><div class="fl"><label>${t('note')}</label><input type="text" id="${pfx}note" value="${v('note')}"></div><div class="sect">${lang==='en'?'Payment QR Codes':(lang==='zht'?'收款二維碼':'收款二维码')}</div><div class="m i" style="font-size:12px;margin-bottom:10px">${t('qrNote')}</div><div class="g2">${qrUploadHtml(pfx,'alipay',aqr)}${qrUploadHtml(pfx,'wechat',wqr)}</div>`;}
@@ -1789,7 +1817,7 @@ function rAdmSettings(tc){const heroImg=db.heroImage||'';const heroTitle=db.hero
   <div id="hero-img-msg" style="margin-top:8px"></div>
 </div>
 <div style="background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.5rem;margin-bottom:1rem"><div style="font-size:15px;font-weight:500;margin-bottom:1rem">${t('adminCredentials')}</div><div id="stg-msg"></div><div class="fl"><label>${t('newEmail')}</label><input type="email" id="stg-email" value="${db.adminEmail||''}" placeholder="${t('adminEmailPlaceholder')}"></div><div class="dv"></div><div class="fl"><label>${t('currentPassword')}</label><input type="password" id="stg-cur-pw" placeholder="••••••••"></div><div class="fl"><label>${t('newPassword')} <span style="font-size:11px;color:var(--color-text-tertiary)">(${lang==='en'?'leave blank to keep current':lang==='zht'?'留空保持不變':'留空保持不变'})</span></label><input type="password" id="stg-new-pw" placeholder="••••••••" oninput="ckAS2(this.value)"><div class="sb" id="stg-sb" style="width:0%;background:#E24B4A"></div></div><div class="fl"><label>${t('confirmPassword')}</label><input type="password" id="stg-new-pw2" placeholder="••••••••"></div><button class="btn p" style="margin-top:8px" onclick="saveAdminSettings()">${t('saveCredentials')}</button></div></div>`;}
-function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{db.heroImage=ev.target.result;sv();const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));};rd.readAsDataURL(f);}
+function handleHeroImg(e){const f=e.target.files[0];if(!f)return;const msg=document.getElementById('hero-img-msg');if(msg)msg.innerHTML=`<div class="m i" style="font-size:12px">${lang==='en'?'Compressing…':lang==='zht'?'壓縮中…':'压缩中…'}</div>`;_compressImg(f,1800,0.85).then(dataUrl=>{db.heroImage=dataUrl;sv();if(msg)msg.innerHTML=`<div class="m s">${lang==='en'?'Banner image saved!':lang==='zht'?'橫幅圖片已儲存！':'横幅图片已保存！'}</div>`;rAdmSettings(document.getElementById('atc'));});}
 function removeHeroImg(){db.heroImage='';sv();rAdmSettings(document.getElementById('atc'));}
 function saveHeroTextSettings(){const title=document.getElementById('stg-hero-title')?.value.trim(),sub=document.getElementById('stg-hero-sub')?.value.trim(),msg=document.getElementById('hero-text-msg');if(title!==undefined)db.heroTextTitle=title;if(sub!==undefined)db.heroTextSub=sub;sv();if(msg)msg.innerHTML='<div class="m s" style="font-size:12px">'+(lang==='en'?'Text saved!':lang==='zht'?'文字已儲存！':'文字已保存！')+'</div>';setTimeout(()=>{if(msg)msg.innerHTML='';},2000);}function ckAS2(pw){const b=document.getElementById('stg-sb');if(!b)return;if(!pw){b.style.width='0%';return;}let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;b.style.width=['0%','25%','50%','75%','100%'][s];b.style.background=['#E24B4A','#E24B4A','#EF9F27','#97C459','#639922'][s];}
 function saveAdminSettings(){const em=document.getElementById('stg-email').value.trim().toLowerCase(),cur=document.getElementById('stg-cur-pw').value,npw=document.getElementById('stg-new-pw').value,npw2=document.getElementById('stg-new-pw2').value,msg=document.getElementById('stg-msg');if(cur!==db.adminPassword){msg.innerHTML=`<div class="m e">${t('errorCurrentPassword')}</div>`;return;}if(!em){msg.innerHTML=`<div class="m e">${t('errorEmailRequired')}</div>`;return;}if(npw&&npw.length<8){msg.innerHTML=`<div class="m e">${t('errorPassShort')}</div>`;return;}if(npw&&npw!==npw2){msg.innerHTML=`<div class="m e">${t('errorPassMismatch')}</div>`;return;}db.adminEmail=em;if(npw)db.adminPassword=npw;sv();msg.innerHTML=`<div class="m s">${t('credentialsSaved')}</div>`;document.getElementById('stg-cur-pw').value='';document.getElementById('stg-new-pw').value='';document.getElementById('stg-new-pw2').value='';if(document.getElementById('stg-sb'))document.getElementById('stg-sb').style.width='0%';}
