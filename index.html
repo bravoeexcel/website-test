@@ -807,6 +807,7 @@ function sv(){
   (db.products||[]).forEach(prod=>{
     const imgs=prod.imgs&&prod.imgs.length ? prod.imgs : (prod.img ? [prod.img] : []);
     if(imgs.length) _svImgDoc('img_'+prod.id, {imgs});
+    // Always write the text doc when content exists; also write empty doc to clear if needed
     const hasText=prod.content_en||prod.content_zh||prod.content_zht;
     if(hasText) _svImgDoc('text_'+prod.id, {content_en:prod.content_en||'', content_zh:prod.content_zh||'', content_zht:prod.content_zht||''});
   });
@@ -892,7 +893,14 @@ function _applyRemote(data){
       const existing=db.products||[];
       db.products=incoming.map(np=>{
         const old=existing.find(op=>op.id===np.id)||{};
-        return {...np, img:old.img||np.img||'', imgs:old.imgs||np.imgs||[]};
+        return {
+          ...np,
+          img:old.img||np.img||'',
+          imgs:old.imgs||np.imgs||[],
+          content_en:old.content_en||np.content_en||'',
+          content_zh:old.content_zh||np.content_zh||'',
+          content_zht:old.content_zht||np.content_zht||''
+        };
       });
     } else if(k==='referrers'){
       const incoming=data[k];
@@ -1018,7 +1026,24 @@ window._boot = async function _boot(){
   try{
     _fb.onSnapshot(_fb.storeDoc, (snap)=>{
       if(!snap.exists()) return;
+      const prevProdIds=new Set((db.products||[]).map(p=>p.id));
       _applyRemote(snap.data());
+      // For any newly added products not seen before, fetch their image/text docs
+      // and attach live listeners so all clients see images and content immediately
+      (db.products||[]).forEach(prod=>{
+        if(!prevProdIds.has(prod.id)){
+          // Fetch image doc for this new product
+          if(_fb.doc&&_fb.fsdb){
+            _fb.getDoc(_fb.doc(_fb.fsdb,'netiva','img_'+prod.id)).then(s=>{
+              if(s.exists()) _applyProdImgDoc(prod.id, s.data());
+            }).catch(()=>{});
+            _fb.getDoc(_fb.doc(_fb.fsdb,'netiva','text_'+prod.id)).then(s=>{
+              if(s.exists()) _applyProdTextDoc(prod.id, s.data());
+            }).catch(()=>{});
+          }
+          _attachProdListeners(prod);
+        }
+      });
       if(!db.adm){ try{render();}catch(e){} }
     });
   }catch(e){ console.warn('Firestore main listener failed:',e); }
@@ -1737,9 +1762,17 @@ function handleProdImgs(e,pfx){
   });
 }
 function startAddProd(){editingProdId='new';rAdmProds(document.getElementById('atc'));const slot=document.getElementById('prod-add-slot');slot.innerHTML=`<div class="prod-edit-form"><div style="font-size:14px;font-weight:500;margin-bottom:12px">${t('addProductTitle')}</div><div id="add-prod-msg"></div>${prodFormHtml(null,'np-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveNewProd()">${t('saveProduct')}</button><button class="btn sm" onclick="editingProdId=null;rAdmProds(document.getElementById('atc'))">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _newProd={id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants};db.products.push(_newProd);window['np-imgs']=undefined;window['np-variants']=undefined;sv();_attachProdListeners(_newProd);editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
+function saveNewProd(){const msg=document.getElementById('add-prod-msg');const name_en=document.getElementById('np-name_en').value.trim(),name_zh=document.getElementById('np-name_zh').value.trim(),name_zht=document.getElementById('np-name_zht').value.trim(),desc_en=getRteHtml('np-desc_en'),desc_zh=getRteHtml('np-desc_zh'),desc_zht=getRteHtml('np-desc_zht'),content_en=getRteHtml('np-content_en'),content_zh=getRteHtml('np-content_zh'),content_zht=getRteHtml('np-content_zht'),tag_en=document.getElementById('np-tag_en').value.trim(),tag_zh=document.getElementById('np-tag_zh').value.trim(),tag_zht=document.getElementById('np-tag_zht').value.trim(),icon=document.getElementById('np-icon').value.trim(),usdPrice=parseFloat(document.getElementById('np-usdPrice').value),active=document.getElementById('np-active').value==='1',imgs=window['np-imgs']||[],img=imgs[0]||'',variants=collectVarFields('np-');if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}const _newProd={id:'p'+Date.now(),name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants};db.products.push(_newProd);window['np-imgs']=undefined;window['np-variants']=undefined;sv();
+// Force-write image and text docs for new product so all clients receive them
+if(imgs.length) _svImgDoc('img_'+_newProd.id, {imgs});
+if(content_en||content_zh||content_zht) _svImgDoc('text_'+_newProd.id, {content_en:content_en||'',content_zh:content_zh||'',content_zht:content_zht||''});
+_attachProdListeners(_newProd);editingProdId=null;msg.innerHTML=`<div class="m s">${t('productAdded')}</div>`;setTimeout(()=>rAdmProds(document.getElementById('atc')),800);}
 function startEditProd(id){editingProdId=editingProdId===id?null:id;rAdmProds(document.getElementById('atc'));if(editingProdId===id){const slot=document.getElementById('prod-edit-'+id),p=db.products.find(x=>x.id===id);slot.innerHTML=`<div class="prod-edit-form"><div id="ep-msg-${id}"></div>${prodFormHtml(p,'ep'+id+'-')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn p sm" onclick="saveEditProd('${id}')">${t('saveChanges')}</button><button class="btn sm" onclick="startEditProd('${id}')">${t('cancel')}</button></div></div>`;slot.scrollIntoView({behavior:'smooth',block:'nearest'});}}
-function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),name_zht=document.getElementById(pfx+'name_zht').value.trim(),desc_en=getRteHtml(pfx+'desc_en'),desc_zh=getRteHtml(pfx+'desc_zh'),desc_zht=getRteHtml(pfx+'desc_zht'),content_en=getRteHtml(pfx+'content_en'),content_zh=getRteHtml(pfx+'content_zh'),content_zht=getRteHtml(pfx+'content_zht'),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),tag_zht=document.getElementById(pfx+'tag_zht').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),active=document.getElementById(pfx+'active').value==='1',imgs=window[pfx+'imgs']!==undefined?window[pfx+'imgs']:(db.products.find(x=>x.id===id)?.imgs||[]),img=imgs[0]||(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window[pfx+'imgs']=undefined;window[pfx+'variants']=undefined;sv();editingProdId=null;rAdmProds(document.getElementById('atc'));}
+function saveEditProd(id){const pfx='ep'+id+'-',msg=document.getElementById('ep-msg-'+id);const name_en=document.getElementById(pfx+'name_en').value.trim(),name_zh=document.getElementById(pfx+'name_zh').value.trim(),name_zht=document.getElementById(pfx+'name_zht').value.trim(),desc_en=getRteHtml(pfx+'desc_en'),desc_zh=getRteHtml(pfx+'desc_zh'),desc_zht=getRteHtml(pfx+'desc_zht'),content_en=getRteHtml(pfx+'content_en'),content_zh=getRteHtml(pfx+'content_zh'),content_zht=getRteHtml(pfx+'content_zht'),tag_en=document.getElementById(pfx+'tag_en').value.trim(),tag_zh=document.getElementById(pfx+'tag_zh').value.trim(),tag_zht=document.getElementById(pfx+'tag_zht').value.trim(),icon=document.getElementById(pfx+'icon').value.trim(),usdPrice=parseFloat(document.getElementById(pfx+'usdPrice').value),active=document.getElementById(pfx+'active').value==='1',imgs=window[pfx+'imgs']!==undefined?window[pfx+'imgs']:(db.products.find(x=>x.id===id)?.imgs||[]),img=imgs[0]||(db.products.find(x=>x.id===id)?.img||''),variants=collectVarFields(pfx);if((!name_en&&!name_zh)||isNaN(usdPrice)||usdPrice<=0){msg.innerHTML=`<div class="m e">${t('errorNamePrice')}</div>`;return;}Object.assign(db.products.find(x=>x.id===id),{name_en,name_zh,name_zht,desc_en,desc_zh,desc_zht,content_en,content_zh,content_zht,tag_en,tag_zh,tag_zht,icon,usdPrice,active,img,imgs,variants});window[pfx+'imgs']=undefined;window[pfx+'variants']=undefined;sv();
+// Force-write image and text docs so all clients receive the updated content
+_svImgDoc('img_'+id, {imgs:imgs.length?imgs:(img?[img]:[])});
+_svImgDoc('text_'+id, {content_en:content_en||'',content_zh:content_zh||'',content_zht:content_zht||''});
+editingProdId=null;rAdmProds(document.getElementById('atc'));}
 function toggleProd(id){const p=db.products.find(x=>x.id===id);if(!p)return;p.active=!p.active;sv();rAdmProds(document.getElementById('atc'));}
 function deleteProd(id){db.products=db.products.filter(x=>x.id!==id);sv();rAdmProds(document.getElementById('atc'));}
 
